@@ -1,0 +1,4 @@
+*                         @<your-user>
+fastapi/**                @<your-user> @cto-user
+.github/workflows/**      @cto-user
+scripts/**                @cto-user
