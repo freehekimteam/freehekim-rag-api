@@ -1,4 +1,4 @@
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     env: str = "staging"
@@ -8,4 +8,4 @@ class Settings(BaseSettings):
     embed_provider: str = "openai"  # or bge-m3
 
     class Config:
-        env_file = "../.env"
+        env_file = "/app/.env"

@@ -1,8 +1,8 @@
 services:
   api:
-    image: ghcr.io/<org>/hakancloud-core:dev
+    image: ghcr.io/freehekimteam/hakancloud-core:dev
     restart: unless-stopped
-    env_file: ~/.hakancloud/.env
+    env_file: /home/freehekim/.hakancloud/.env
     ports:
       - "127.0.0.1:8080:8080"
     depends_on:
