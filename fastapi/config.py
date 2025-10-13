@@ -10,4 +10,8 @@ class Settings(BaseSettings):
     openai_embedding_model: str = "text-embedding-3-small"  # 1536 dimensions
 
     class Config:
-        env_file = "/app/.env"
+        # Read from environment variables (set by docker-compose env_file)
+        # Also supports local .env file if present
+        env_file = ".env"
+        env_file_encoding = "utf-8"
+        case_sensitive = False
