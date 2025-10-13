@@ -3,7 +3,14 @@ from config import Settings
 
 settings = Settings()
 
-_qdrant = QdrantClient(host=settings.qdrant_host, port=settings.qdrant_port, api_key=settings.qdrant_api_key)
+# Use HTTPS only for port 443 (production), HTTP for local development
+use_https = settings.qdrant_port == 443
+_qdrant = QdrantClient(
+    host=settings.qdrant_host,
+    port=settings.qdrant_port,
+    api_key=settings.qdrant_api_key,
+    https=use_https
+)
 
 INTERNAL = "freehekim_internal"
 EXTERNAL = "freehekim_external"
