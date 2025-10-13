@@ -16,7 +16,7 @@ import sys
 from pathlib import Path
 
 # Add fastapi directory to path
-sys.path.insert(0, str(Path(__file__).parent / "hakancloud-core" / "fastapi"))
+sys.path.insert(0, str(Path(__file__).parent / "fastapi"))
 
 from rag.embeddings import embed, embed_batch, get_embedding_dimension
 from rag.client_qdrant import _qdrant, INTERNAL, EXTERNAL
