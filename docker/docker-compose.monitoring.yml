@@ -5,8 +5,9 @@ services:
   prometheus:
     image: prom/prometheus:latest
     restart: unless-stopped
+    user: "nobody"
     volumes:
-      - /var/lib/prometheus_data:/prometheus
+      - /home/freehekim/data/prometheus:/prometheus
       - /home/freehekim/apps/hakancloud-ops/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
@@ -25,8 +26,9 @@ services:
   grafana:
     image: grafana/grafana:latest
     restart: unless-stopped
+    user: "472:472"  # Default Grafana UID/GID
     volumes:
-      - /var/lib/grafana_data:/var/lib/grafana
+      - /home/freehekim/data/grafana:/var/lib/grafana
       - /home/freehekim/apps/hakancloud-ops/monitoring/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
     environment:
       - GF_SECURITY_ADMIN_USER=admin
