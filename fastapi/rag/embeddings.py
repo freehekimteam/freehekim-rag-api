@@ -3,7 +3,7 @@ Embedding generation module for HakanCloud RAG
 Supports OpenAI text-embedding-3-small (1536 dimensions)
 """
 import logging
-from typing import List, Union
+from typing import List
 from openai import OpenAI
 from config import Settings
 
