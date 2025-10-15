@@ -39,6 +39,23 @@ jobs:
           username: ${{ secrets.HC_SSH_USER }}
           key: ${{ secrets.HC_SSH_KEY }}
           script: |
-            docker login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
-            cd ~/hakancloud && docker compose -f docker/docker-compose.server.yml pull && docker compose -f docker/docker-compose.server.yml up -d
+            # Login to GitHub Container Registry
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+            # Navigate to deployment directory
+            cd ~/freehekim-rag-api || exit 1
+
+            # Pull latest image
+            docker compose -f docker/docker-compose.server.yml pull
+
+            # Restart services
+            docker compose -f docker/docker-compose.server.yml up -d --remove-orphans
+
+            # Wait for service to be ready
+            sleep 5
+
+            # Health check
             curl -fsS http://127.0.0.1:8080/health || (echo "Health check failed" && exit 1)
+
+            # Readiness check
+            curl -fsS http://127.0.0.1:8080/ready || echo "Warning: Readiness check failed (Qdrant may not be accessible)"

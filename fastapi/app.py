@@ -16,8 +16,37 @@ def health():
 
 @app.get("/ready")
 def ready():
-    # later: check Qdrant connectivity
-    return {"ready": True}
+    """
+    Readiness probe - checks if API can serve traffic
+    Returns 200 if Qdrant is reachable, 503 otherwise
+    """
+    from rag.client_qdrant import _qdrant
+    from fastapi.responses import JSONResponse
+
+    try:
+        # Try to get collections from Qdrant
+        collections = _qdrant.get_collections()
+        collection_names = [col.name for col in collections.collections]
+
+        return {
+            "ready": True,
+            "qdrant": {
+                "connected": True,
+                "collections": collection_names,
+                "count": len(collection_names)
+            }
+        }
+    except Exception as e:
+        return JSONResponse(
+            status_code=503,
+            content={
+                "ready": False,
+                "qdrant": {
+                    "connected": False,
+                    "error": str(e)
+                }
+            }
+        )
 
 @app.post("/rag/query")
 def rag_query(payload: dict):

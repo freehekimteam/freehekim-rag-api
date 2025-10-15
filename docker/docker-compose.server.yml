@@ -1,17 +1,29 @@
 services:
   api:
-    image: ghcr.io/freehekimteam/hakancloud-core:dev
+    image: ghcr.io/freehekimteam/freehekim-rag-api:${IMAGE_TAG:-dev}
     restart: unless-stopped
     env_file: /home/freehekim/.hakancloud/.env
     ports:
       - "127.0.0.1:8080:8080"
     depends_on:
-      - qdrant
+      qdrant:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - hakancloud
     deploy:
       resources:
         limits:
           cpus: '2.0'
           memory: 2g
+        reservations:
+          cpus: '0.5'
+          memory: 512m
 
   qdrant:
     image: qdrant/qdrant:latest
@@ -22,3 +34,19 @@ services:
       - QDRANT__SERVICE__API_KEY=${QDRANT_API_KEY}
     ports:
       - "127.0.0.1:6333:6333"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    networks:
+      - hakancloud
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1g
+
+networks:
+  hakancloud:
+    driver: bridge
