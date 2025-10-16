@@ -1,5 +1,5 @@
 """
-Embedding generation module for HakanCloud RAG
+Embedding generation module for FreeHekim RAG
 Supports OpenAI text-embedding-3-small (1536 dimensions)
 """
 

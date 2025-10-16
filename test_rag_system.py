@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-HakanCloud RAG System Test Script
+FreeHekim RAG System Test Script
 ==================================
 
 Tests the complete RAG pipeline:
@@ -130,7 +130,7 @@ def test_rag_pipeline():
 def main():
     """Run all tests"""
     print("\n" + "=" * 60)
-    print("🧪 HakanCloud RAG System Tests")
+    print("🧪 FreeHekim RAG System Tests")
     print("=" * 60 + "\n")
 
     results = {}

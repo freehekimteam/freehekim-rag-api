@@ -1,4 +1,4 @@
-# HakanCloud Core
+# FreeHekim RAG API
 
 **Retrieval-Augmented Generation (RAG) API for FreeHekim**
 

@@ -1,5 +1,5 @@
 """
-HakanCloud RAG Module
+FreeHekim RAG Module
 
 Retrieval-Augmented Generation pipeline for medical content search and Q&A.
 Combines vector search (Qdrant) with large language models (OpenAI GPT-4).

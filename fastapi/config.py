@@ -1,5 +1,5 @@
 """
-HakanCloud Configuration
+FreeHekim Configuration
 
 Application settings loaded from environment variables with validation.
 Supports both .env files and environment variables.

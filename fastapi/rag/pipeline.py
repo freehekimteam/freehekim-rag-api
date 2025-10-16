@@ -1,5 +1,5 @@
 """
-HakanCloud RAG Pipeline
+FreeHekim RAG Pipeline
 
 Retrieval-Augmented Generation with reciprocal-rank fusion.
 Combines vector search with GPT-4 to generate contextual answers

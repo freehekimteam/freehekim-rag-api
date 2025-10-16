@@ -1,4 +1,4 @@
-# HakanCloud RAG - OpenAI Embeddings Upgrade
+# FreeHekim RAG - OpenAI Embeddings Upgrade
 
 **Tarih:** 2025-10-13
 **Durum:** ✅ Tamamlandı
@@ -256,7 +256,7 @@ client.create_collection(...)
 ## 📞 Destek
 
 **Sorular için:**
-- PDF: `HakanCloud_RAG_Altyapsı.pdf`
+- PDF: `FreeHekim_RAG_Altyapsı.pdf`
 - Code: `hakancloud-core/fastapi/rag/`
 - Tests: `test_rag_system.py`
 

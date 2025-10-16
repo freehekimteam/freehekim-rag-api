@@ -1,5 +1,5 @@
 """
-Tests for embeddings module
+Tests for FreeHekim RAG embeddings module
 """
 
 import sys

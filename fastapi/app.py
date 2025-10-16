@@ -1,5 +1,5 @@
 """
-HakanCloud RAG API
+FreeHekim RAG API
 
 FastAPI application providing Retrieval-Augmented Generation endpoints
 for medical content search and question-answering.
@@ -28,7 +28,7 @@ settings = Settings()
 
 # FastAPI app with metadata
 app = FastAPI(
-    title="HakanCloud RAG API",
+    title="FreeHekim RAG API",
     description="Retrieval-Augmented Generation API for FreeHekim medical content",
     version="1.0.0",
     docs_url="/docs" if settings.env != "production" else None,  # Disable in prod
@@ -223,7 +223,7 @@ def rag_query(request: RAGQueryRequest) -> RAGQueryResponse:
 @app.on_event("startup")
 async def startup_event() -> None:
     """Log startup information"""
-    logger.info(f"🚀 HakanCloud RAG API starting in {settings.env} mode")
+    logger.info(f"🚀 FreeHekim RAG API starting in {settings.env} mode")
     logger.info(f"📊 Qdrant: {settings.qdrant_host}:{settings.qdrant_port}")
     logger.info(f"🤖 Embedding provider: {settings.embed_provider}")
 
@@ -231,4 +231,4 @@ async def startup_event() -> None:
 @app.on_event("shutdown")
 async def shutdown_event() -> None:
     """Cleanup on shutdown"""
-    logger.info("🛑 HakanCloud RAG API shutting down")
+    logger.info("🛑 FreeHekim RAG API shutting down")

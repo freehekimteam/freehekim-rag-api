@@ -1,9 +1,9 @@
-# HakanCloud RAG API - Python Project Configuration
+# FreeHekim RAG API - Python Project Configuration
 # Modern Python packaging and tooling configuration
 
 [project]
 name = "freehekim-rag-api"
-version = "1.0.0"
+version = "2.0.0"
 description = "Retrieval-Augmented Generation (RAG) API for FreeHekim medical content"
 authors = [
     {name = "FreeHekim Team", email = "dev@hakancloud.com"}

@@ -1,5 +1,5 @@
 """
-Tests for configuration module
+Tests for FreeHekim RAG configuration module
 """
 
 import os

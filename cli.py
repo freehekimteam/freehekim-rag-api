@@ -2,7 +2,7 @@
 """
 FreeHekim RAG Interactive CLI
 
-Interactive terminal interface for querying the RAG system.
+Interactive terminal interface for querying the FreeHekim RAG system.
 Uses arrow keys for navigation and Enter/Space for selection.
 """
 

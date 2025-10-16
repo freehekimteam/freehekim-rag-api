@@ -1,6 +1,6 @@
 # Monitoring Configuration
 
-This directory contains Prometheus and Grafana configuration files for HakanCloud Core monitoring.
+This directory contains Prometheus and Grafana configuration files for FreeHekim RAG API monitoring.
 
 ## Deployment Instructions
 

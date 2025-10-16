@@ -1,4 +1,4 @@
-# Development Dependencies for HakanCloud RAG API
+# Development Dependencies for FreeHekim RAG API
 # Install with: pip install -r requirements-dev.txt
 
 # Code Quality & Linting

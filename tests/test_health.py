@@ -1,5 +1,5 @@
 """
-Health endpoint tests for HakanCloud RAG API
+Health endpoint tests for FreeHekim RAG API
 """
 import sys
 from pathlib import Path

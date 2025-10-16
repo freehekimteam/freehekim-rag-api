@@ -1,5 +1,5 @@
 """
-RAG endpoint smoke tests for HakanCloud RAG API
+RAG endpoint smoke tests for FreeHekim RAG API
 """
 import sys
 from pathlib import Path
