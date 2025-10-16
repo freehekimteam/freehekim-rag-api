@@ -60,3 +60,33 @@ Thumbs.db
 # Qdrant Local Data
 qdrant_data/
 *.qdrant
+
+# Infrastructure
+infrastructure/terraform/.terraform/
+infrastructure/terraform/*.tfstate
+infrastructure/terraform/*.tfstate.backup
+infrastructure/terraform/.terraform.lock.hcl
+infrastructure/terraform/terraform.tfvars
+infrastructure/terraform/crash.log
+infrastructure/ansible/*.retry
+infrastructure/ansible/secrets.yml
+infrastructure/cloudflare/*.json
+infrastructure/cloudflare/credentials-file.json
+
+# Deployment
+deployment/*/data/
+deployment/docker/volumes/
+
+# Monitoring Data
+prometheus-data/
+grafana-data/
+
+# Cloudflare
+.cloudflared/
+*.pem
+
+# Secrets
+secrets/
+credentials.json
+*.key
+*.crt
