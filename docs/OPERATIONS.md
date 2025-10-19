@@ -26,6 +26,21 @@ make run
 - Docker Compose dosyaları: `deployment/docker/`
 - Hızlı başlat: `make docker-up`
 
+## Ops CLI (Acil Durum ve Bakım)
+```bash
+python3 tools/ops_cli.py
+```
+
+Kısayollar: `↑/↓` menü seçimi, `Enter/Space` çalıştır, `Ctrl+Q` çıkış.
+
+Menü başlıkları:
+- Genel Durum (env, LLM, Qdrant, limitler, cache)
+- Sağlık Kontrolleri (Health/Ready eşdeğeri)
+- Qdrant Koleksiyonları (isim ve point sayıları)
+- Hızlı RAG Testi (tek soru/cevap)
+- Koruma Ayarları (bilgilendirme)
+- Cache Durumu / Temizle (opsiyonel)
+
 ## Geri Alma (Rollback)
 - Önceki imaj/etiketle compose’ı yeniden başlatın
 - Yedeklerden Qdrant verisini geri yükleyin (gerekirse)
@@ -33,4 +48,3 @@ make run
 ## Olay Yönetimi
 - Yüksek hata oranı: Grafana uyarıları → Loglar → `/ready` kontrolü
 - Qdrant gecikmesi yüksek: `SEARCH_TOPK` ve `ef_search` (Qdrant) ayarlarını gözden geçirin
-

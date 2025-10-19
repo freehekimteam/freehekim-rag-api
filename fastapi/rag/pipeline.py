@@ -404,7 +404,7 @@ def retrieve_answer(q: str, top_k: int | None = None) -> dict[str, Any]:
                     "external_hits": len(external_results),
                     "fused_results": 0,
                     "tokens_used": 0,
-                    "model": GPT_MODEL
+                    "model": settings.llm_model
                 }
             }
 
@@ -523,3 +523,26 @@ def retrieve_answer(q: str, top_k: int | None = None) -> dict[str, Any]:
             "sources": [],
             "metadata": {"error_type": "unexpected"}
         }
+
+
+def cache_stats() -> dict[str, Any]:
+    """Return simple cache statistics."""
+    try:
+        return {
+            "enabled": settings.enable_cache,
+            "size": len(_response_cache),
+            "ttl_seconds": settings.cache_ttl_seconds,
+        }
+    except Exception:
+        return {"enabled": False, "size": 0, "ttl_seconds": 0}
+
+
+def flush_cache() -> int:
+    """Flush in-memory response cache; returns number of entries removed."""
+    try:
+        n = len(_response_cache)
+        _response_cache.clear()
+        logger.info(f"🧹 Cache flushed: {n} entries removed")
+        return n
+    except Exception:
+        return 0
