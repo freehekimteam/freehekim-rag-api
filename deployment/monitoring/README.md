@@ -51,15 +51,15 @@ docker compose -f docker/docker-compose.server.yml \
 - `http_request_duration_seconds_sum` - Total request time
 - `http_request_duration_seconds_count` - Request count (for rate calculation)
 
-### Custom Metrics (to be added)
+### Custom Metrics (RAG)
 
-```python
-from prometheus_client import Counter, Histogram
+Uygulama aşağıdaki özel metrikleri yayımlar:
 
-rag_queries_total = Counter('rag_queries_total', 'Total RAG queries')
-rag_query_duration = Histogram('rag_query_duration_seconds', 'RAG query duration')
-rag_tokens_used = Counter('rag_tokens_used_total', 'Total OpenAI tokens used')
-```
+- `rag_total_seconds` (Histogram): Tüm RAG pipeline süresi
+- `rag_embed_seconds` (Histogram): Embedding süresi
+- `rag_search_seconds{collection}` (Histogram): Arama süresi (internal/external)
+- `rag_generate_seconds` (Histogram): LLM üretim süresi
+- `rag_errors_total{type}` (Counter): Hata sayacı (embedding/database/rag/unexpected)
 
 ## Grafana Dashboard Queries
 

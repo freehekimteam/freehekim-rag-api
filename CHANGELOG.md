@@ -209,3 +209,30 @@ Code optimization and CLI implemented by Codex AI with guidance from FreeHekim t
 - Docker deployment support
 - CI/CD with GitHub Actions
 - Prometheus monitoring
+## [2.1.0] - 2025-10-19 - Operational Hardening & Configurability
+
+### ✨ Highlights
+- Global exception handlers for consistent error responses (`{"error": ...}`)
+- Lazy Qdrant initialization and robust readiness probe
+- Configurable LLM and pipeline parameters via `.env`
+- Parallel internal/external searches to reduce latency
+- Prometheus metrics for RAG stages (embed/search/generate/total) and error counters
+- Basic protections: per-IP rate limiting (429) and body size limits (413)
+- OpenAI SDK compatibility across 1.x variants
+
+### 🔧 Details
+- app.py: Request/HTTP/Generic exception handlers, request ID, rate limit and body size middlewares
+- config.py: New settings (LLM, timeouts, search_topk, context/source limits, protections)
+- pipeline.py: Uses settings, adds metrics, parallelizes searches, adds retries
+- client_qdrant.py: Configurable timeout, search retries with backoff
+- embeddings.py: Retry on transient OpenAI errors
+- .env.example: Updated with all new keys
+
+### ⚠️ Behavioral Changes
+- Validation errors now return 400 instead of 422 and include an `error` field
+- New 429/413 responses for rate/body limits
+
+### 🧪 Testing
+- System test updated to use lazy Qdrant client
+
+---

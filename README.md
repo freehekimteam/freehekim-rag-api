@@ -43,6 +43,7 @@ Modern, production-ready AI backend providing intelligent medical content search
 - **Medical Compliance:** Automatic disclaimer injection (Turkish)
 - **KVKK/GDPR:** Zero personal data retention
 - **Production-Ready:** Health checks, metrics, Docker deployment
+- **Operational Hardening:** Rate limiting, body size limits, request IDs, retries
 - **CI/CD:** Automated testing, security scanning, deployment
 
 ## Tech Stack
@@ -136,6 +137,11 @@ docker compose -f docker/docker-compose.server.yml up -d
 | `POST` | `/rag/query` | Ask a question, get AI answer |
 | `GET` | `/metrics` | Prometheus metrics |
 
+Notes:
+- Validation errors return `400` with body `{ "error": "Invalid request", "details": [...] }`.
+- Rate limiting returns `429` with `{ "error": "Rate limit exceeded" }`.
+- Oversized requests return `413` with `{ "error": "Request body too large" }`.
+
 ### Example Request
 
 ```bash
@@ -173,13 +179,23 @@ See `.env.example` for all available options:
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `ENV` | Environment (staging/production) | `staging` |
+| `ENV` | Environment (staging/production/development) | `staging` |
 | `QDRANT_HOST` | Qdrant server hostname | `localhost` |
 | `QDRANT_PORT` | Qdrant port (443=HTTPS, 6333=HTTP) | `6333` |
 | `QDRANT_API_KEY` | Qdrant API key | - |
+| `QDRANT_TIMEOUT` | Qdrant client timeout (seconds) | `10.0` |
 | `OPENAI_API_KEY` | OpenAI API key | - |
 | `OPENAI_EMBEDDING_MODEL` | Embedding model | `text-embedding-3-small` |
 | `EMBED_PROVIDER` | Embedding provider (openai/bge-m3) | `openai` |
+| `LLM_MODEL` | LLM for generation (e.g. gpt-4, gpt-4o) | `gpt-4` |
+| `LLM_TEMPERATURE` | LLM sampling temperature (0-2) | `0.3` |
+| `LLM_MAX_TOKENS` | Max tokens for answer | `800` |
+| `SEARCH_TOPK` | Results per collection | `5` |
+| `PIPELINE_MAX_CONTEXT_CHUNKS` | Context chunks to LLM | `5` |
+| `PIPELINE_MAX_SOURCE_DISPLAY` | Sources in response | `3` |
+| `PIPELINE_MAX_SOURCE_TEXT_LENGTH` | Source preview length (chars) | `200` |
+| `RATE_LIMIT_PER_MINUTE` | Requests per IP per minute | `60` |
+| `MAX_BODY_SIZE_BYTES` | Max request body size | `1048576` |
 
 ## Testing
 
@@ -199,8 +215,8 @@ pytest --cov=fastapi tests/
 1. **Embedding Generation:** User question → OpenAI embedding (1536 dim vector)
 2. **Dual Search:** Query both collections (internal + external)
 3. **Reciprocal-Rank Fusion:** Merge results using RRF algorithm
-4. **Context Extraction:** Select top 5 chunks
-5. **Answer Generation:** GPT-4 generates answer with source citations
+4. **Context Extraction:** Select top N chunks (configurable)
+5. **Answer Generation:** GPT-4 (configurable) generates answer with citations
 6. **Disclaimer Injection:** Automatic medical liability disclaimer (Turkish)
 
 ## Monitoring
@@ -209,6 +225,13 @@ Prometheus metrics available at `/metrics`:
 - Request count & latency
 - Error rates
 - RAG pipeline performance
+
+Custom RAG metrics exposed:
+- `rag_total_seconds` (Histogram): total pipeline duration
+- `rag_embed_seconds` (Histogram): embedding latency
+- `rag_search_seconds{collection}` (Histogram): search latency per collection
+- `rag_generate_seconds` (Histogram): LLM generation latency
+- `rag_errors_total{type}` (Counter): error counts by type (embedding/database/rag/unexpected)
 
 **Grafana dashboards:**
 ```bash
@@ -226,6 +249,7 @@ Access Grafana at `http://localhost:3000` (default: `admin/hakancloud2025`)
 - **KVKK/GDPR:** No personal data stored or embedded
 - **Backups:** Encrypted snapshots, 14-day retention
 - **Security Scanning:** Trivy + CodeQL on every commit
+- **Protections:** Per-IP rate limiting and request body size limits
 
 Report security issues to: `security@hakancloud.com`
 
@@ -248,6 +272,13 @@ ruff check fastapi
 
 # Format code
 ruff format fastapi
+
+## Error Handling Behavior
+
+- Request validation errors (ör. boş `q`) → `400` + `{"error": "Invalid request"}`
+- Bilinçli hatalar (`HTTPException`) → `{"error": "..."}` (tek tip)
+- Beklenmeyen hatalar → `500` + `{"error": "Internal server error. Please try again later."}`
+
 ```
 
 ## Contributing

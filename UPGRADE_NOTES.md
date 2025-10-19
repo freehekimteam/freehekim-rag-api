@@ -1,3 +1,55 @@
+# FreeHekim RAG - Upgrade Notes
+
+## 2025-10-19 — Operational Hardening & Configurability
+
+Bu sürüm, kurumsal üretim dayanıklılığı için aşağıdaki değişiklikleri içerir:
+
+### Değişiklik Özeti
+- Global hata yakalayıcıları (FastAPI): Tüm doğrulama ve HTTP hataları artık tek tip `{"error": ...}` gövdesiyle dönüyor.
+- Readiness iyileştirmesi: Qdrant bağlantısı import anında değil; `/ready` içinde, güvenli try/except ile.
+- Yapılandırılabilir LLM ve pipeline parametreleri: `.env` üzerinden model, sıcaklık, max tokens, top-k vb.
+- Eşzamanlı arama: Internal ve external koleksiyon aramaları paralel çalışır.
+- Gözlemlenebilirlik: Gecikme histogramları ve hata sayaçları için Prometheus metrikleri eklendi.
+- Temel korumalar: IP başına oran limiti (429) ve gövde boyutu limiti (413) middleware olarak eklendi.
+- OpenAI SDK uyumluluğu: Sürüm farklılıklarına karşı `OpenAIError` import fallback.
+
+### Yeni/Değişen Ortam Değişkenleri
+```
+LLM_MODEL=gpt-4
+LLM_TEMPERATURE=0.3
+LLM_MAX_TOKENS=800
+QDRANT_TIMEOUT=10.0
+SEARCH_TOPK=5
+PIPELINE_MAX_CONTEXT_CHUNKS=5
+PIPELINE_MAX_SOURCE_DISPLAY=3
+PIPELINE_MAX_SOURCE_TEXT_LENGTH=200
+RATE_LIMIT_PER_MINUTE=60
+MAX_BODY_SIZE_BYTES=1048576
+```
+
+### API Davranışındaki Farklılıklar
+- Doğrulama hataları artık `422` yerine `400` döner ve gövde `{"error": "Invalid request", "details": [...]}` şeklindedir.
+- Aşım durumları için yeni durum kodları:
+  - Oran limiti: `429` + `{"error": "Rate limit exceeded"}`
+  - Gövde çok büyük: `413` + `{"error": "Request body too large"}`
+
+### İzleme (Monitoring)
+Eklenen özel metrikler:
+```
+rag_total_seconds            # Tüm pipeline süresi (Histogram)
+rag_embed_seconds            # Embedding süresi (Histogram)
+rag_search_seconds{collection="internal|external"}  # Arama süresi
+rag_generate_seconds         # LLM üretim süresi (Histogram)
+rag_errors_total{type}       # Hata sayacı (embedding|database|rag|unexpected)
+```
+
+### Aksiyonlar
+1. `.env` dosyanıza yeni değişkenleri ekleyin (gerekirse varsayılanlar yeterli).
+2. Monitoring’de yeni metrikleri dashboard’larınıza ekleyin.
+3. (Opsiyonel) Rate limit değerini trafik hacminize göre ayarlayın.
+
+---
+
 # FreeHekim RAG - OpenAI Embeddings Upgrade
 
 **Tarih:** 2025-10-13
