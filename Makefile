@@ -34,3 +34,6 @@ docker-up:
 docker-down:
 	docker compose -f deployment/docker/docker-compose.server.yml down
 
+.PHONY: wiki-publish
+wiki-publish:
+	bash tools/publish_wiki.sh
