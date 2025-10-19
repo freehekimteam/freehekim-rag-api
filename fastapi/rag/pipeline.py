@@ -7,6 +7,8 @@ from medical knowledge base.
 """
 
 import logging
+import time
+import hashlib
 from typing import Any
 
 try:  # Compatibility across openai versions
@@ -38,6 +40,7 @@ MEDICAL_DISCLAIMER = (
 
 # Global OpenAI client for LLM generation
 _llm_client: OpenAI | None = None
+_response_cache: dict[str, tuple[float, dict[str, Any]]] = {}
 
 # Prometheus metrics for RAG pipeline
 try:
@@ -248,7 +251,7 @@ KAYNAK BİLGİLER:
 Yukarıdaki kaynaklara dayanarak soruyu cevapla. Kaynak numaralarını belirt ve tıbbi sorumluluk reddi ekle."""
 
         # Call GPT-4
-        logger.debug(f"Calling {GPT_MODEL} with {len(context_chunks)} context chunks")
+        logger.debug(f"Calling {settings.llm_model} with {len(context_chunks)} context chunks")
 
         last_exc: Exception | None = None
         for attempt in range(3):
@@ -350,8 +353,16 @@ def retrieve_answer(q: str, top_k: int | None = None) -> dict[str, Any]:
 
         # Step 1: Embed query
         logger.info(f"🔍 RAG Query: {q[:100]}{'...' if len(q) > 100 else ''}")
-        import time
         t0 = time.perf_counter()
+        # Cache check (before embedding)
+        cache_key = None
+        if settings.enable_cache:
+            key_raw = f"q={q}|topk={top_k}|model={settings.llm_model}"
+            cache_key = hashlib.sha256(key_raw.encode("utf-8")).hexdigest()
+            item = _response_cache.get(cache_key)
+            if item and (time.monotonic() - item[0] <= settings.cache_ttl_seconds):
+                logger.info("⚡ Cache hit for query")
+                return item[1]
         query_vector = embed(q)
         t1 = time.perf_counter()
         if RAG_EMBED_SECONDS:
@@ -448,6 +459,12 @@ def retrieve_answer(q: str, top_k: int | None = None) -> dict[str, Any]:
         logger.info(f"✅ RAG pipeline completed successfully")
         if RAG_TOTAL_SECONDS:
             RAG_TOTAL_SECONDS.observe(t5 - t0)
+        # Save to cache
+        if settings.enable_cache and cache_key:
+            try:
+                _response_cache[cache_key] = (time.monotonic(), response)
+            except Exception:
+                pass
         return response
 
     except EmbeddingError as e:

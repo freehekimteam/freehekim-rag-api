@@ -141,6 +141,18 @@ class Settings(BaseSettings):
         description="Maximum request body size in bytes"
     )
 
+    # Response caching
+    enable_cache: bool = Field(
+        default=True,
+        description="Enable simple in-memory response cache"
+    )
+    cache_ttl_seconds: int = Field(
+        default=300,
+        ge=10,
+        le=86400,
+        description="TTL for in-memory cache (seconds)"
+    )
+
     # Model configuration
     model_config = SettingsConfigDict(
         env_file=".env",

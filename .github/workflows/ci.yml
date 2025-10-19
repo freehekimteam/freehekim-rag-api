@@ -1,29 +1,40 @@
-name: ci
+name: CI
+
 on:
-  pull_request:
   push:
-    branches: [dev]
+    branches: [ dev, main ]
+  pull_request:
+    branches: [ dev, main ]
 
 jobs:
-  test:
+  build-test:
     runs-on: ubuntu-latest
-    env:
-      # Mock environment variables for testing
-      ENV: staging
-      QDRANT_HOST: localhost
-      QDRANT_PORT: 6333
-      EMBED_PROVIDER: openai
-      OPENAI_API_KEY: sk-test-mock-key-for-ci
-      OPENAI_EMBEDDING_MODEL: text-embedding-3-small
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with: { python-version: '3.11' }
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+
       - name: Install dependencies
-        run: pip install -r fastapi/requirements.txt
-      - name: Install dev tools
-        run: python -m pip install ruff pytest
-      - name: Lint with ruff
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r fastapi/requirements.txt
+          pip install -r requirements-dev.txt || true
+
+      - name: Lint (ruff)
         run: ruff check fastapi
-      - name: Run tests
+
+      - name: Run tests (pytest)
+        env:
+          OPENAI_API_KEY: sk-ci-dummy
         run: pytest -v tests/
+
