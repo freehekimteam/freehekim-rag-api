@@ -171,23 +171,41 @@ class Settings(BaseSettings):
         extra="ignore"  # Ignore extra environment variables
     )
 
-    @field_validator("qdrant_api_key", mode="before")
     @classmethod
     def validate_qdrant_key(cls, v: str | None, info) -> str | None:
-        """Validate Qdrant API key is set for production"""
+        """Runtime-overrideable validator for Qdrant key (used by tests)."""
         env = info.data.get("env", "staging")
         if env == "production" and not v:
             raise ValueError("QDRANT_API_KEY is required in production environment")
         return v
 
-    @field_validator("openai_api_key", mode="before")
+    @field_validator("qdrant_api_key", mode="before")
+    @classmethod
+    def _validator_qdrant_api_key(cls, v: str | None, info) -> str | None:
+        # Delegate to (patchable) validate_qdrant_key, support patched plain functions
+        func = getattr(cls, "validate_qdrant_key")
+        try:
+            return func(v, info)
+        except TypeError:
+            return func(cls, v, info)
+
     @classmethod
     def validate_openai_key(cls, v: str | None, info) -> str | None:
-        """Validate OpenAI API key is set when using OpenAI provider"""
+        """Runtime-overrideable validator for OpenAI key (used by tests)."""
         provider = info.data.get("embed_provider", "openai")
         if provider == "openai" and not v:
             raise ValueError("OPENAI_API_KEY is required when using OpenAI provider")
         return v
+
+    @field_validator("openai_api_key", mode="before")
+    @classmethod
+    def _validator_openai_api_key(cls, v: str | None, info) -> str | None:
+        # Delegate to (patchable) validate_openai_key, support patched plain functions
+        func = getattr(cls, "validate_openai_key")
+        try:
+            return func(v, info)
+        except TypeError:
+            return func(cls, v, info)
 
     def get_qdrant_api_key(self) -> str | None:
         """Get plain text Qdrant API key"""
