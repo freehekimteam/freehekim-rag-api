@@ -42,6 +42,16 @@ docker compose -f docker/docker-compose.server.yml \
   - Default credentials: `admin` / `hakancloud2025`
   - Change password on first login
 
+### 5. Import dashboards
+
+Grafana içinde:
+1. Dashboards → Import
+2. `Upload JSON file` seçin
+3. Aşağıdaki dosyaları yükleyin:
+   - `grafana-dashboards/rag-overview.json`
+   - `grafana-dashboards/qdrant-overview.json`
+4. Datasource olarak `Prometheus` seçin
+
 ## Available Metrics
 
 ### API Metrics (from FastAPI Instrumentator)
