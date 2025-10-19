@@ -53,6 +53,7 @@ Basit hedefler (ilk faz):
 - Log ve izleme:
   - İstek başına `X-Request-ID` header’ı
   - `/metrics` ile Prometheus metrikleri + özel RAG metrikleri
+- Ops CLI (bakım aracı): `python3 tools/ops_cli.py` — Genel durum, sağlık, Qdrant koleksiyonları, hızlı RAG testi ve cache temizleme için pratik menü.
 - Beklentiler (Acceptance):
   - Yanıt süresi ortalaması ≤ 2 sn (staging verisiyle)
   - Cevapta kaynak ve tıbbi uyarı var
@@ -90,4 +91,3 @@ Basit hedefler (ilk faz):
 - Metrikler: `curl http://localhost:8080/metrics`
 
 Bu yol haritasıyla; birkaç gün içinde sahada test edilebilir, birkaç hafta içinde ise sürdürülebilir ve izlenebilir bir AI arama/cevap sistemi elde edersiniz.
-

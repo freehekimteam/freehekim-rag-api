@@ -273,6 +273,17 @@ ruff check fastapi
 # Format code
 ruff format fastapi
 
+### Ops CLI (Bakım/Teşhis Aracı)
+
+Hızlı bakım ve teşhis için basit bir TUI:
+
+```bash
+python3 tools/ops_cli.py
+```
+
+Kısayollar: `↑/↓` menü, `Enter/Space` çalıştır, `Ctrl+Q` çıkış.
+Menü: Genel Durum, Sağlık, Qdrant Koleksiyonları, Hızlı RAG Testi, Koruma Bilgisi, Cache Durumu/Temizle.
+
 ## Error Handling Behavior
 
 - Request validation errors (ör. boş `q`) → `400` + `{"error": "Invalid request"}`

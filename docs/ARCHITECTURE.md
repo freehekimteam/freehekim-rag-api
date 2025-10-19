@@ -10,6 +10,7 @@
 - `fastapi/rag/embeddings.py`: Embedding üretimi (OpenAI, ileride bge-m3)
 - `fastapi/rag/client_qdrant.py`: Qdrant istemcisi ve arama
 - `fastapi/rag/pipeline.py`: RAG akışı (RRF, LLM, metrikler)
+- `tools/ops_cli.py`: Bakım ve teşhis için basit TUI (health/ready, koleksiyonlar, hızlı test)
 
 ## Gözlemlenebilirlik
 - Prometheus metrikleri: `/metrics`
@@ -21,4 +22,3 @@
 
 ## Yapılandırma
 - `.env.example` tüm ayarları listeler; çoğu değer üretimde güncellenebilir.
-
