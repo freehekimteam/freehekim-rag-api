@@ -166,5 +166,5 @@ def get_collection_info(collection_name: str) -> dict[str, Any]:
         raise ValueError(f"Collection '{collection_name}' not found or unreachable") from e
 
 
-# Expose global client for backward compatibility (used in app.py ready endpoint)
-_qdrant = get_qdrant_client()
+# Note: Do NOT initialize the client at import-time to avoid startup failures
+_qdrant = None  # Will be created on first use via get_qdrant_client()

@@ -8,8 +8,9 @@ for medical content search and question-answering.
 import logging
 from typing import Any
 
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
 from prometheus_fastapi_instrumentator import Instrumentator
 from pydantic import BaseModel, Field, field_validator
 
@@ -26,6 +27,12 @@ logger = logging.getLogger(__name__)
 # Initialize settings
 settings = Settings()
 
+# Align logger level with settings
+try:
+    logging.getLogger().setLevel(getattr(logging, settings.log_level, logging.INFO))
+except Exception:
+    pass
+
 # FastAPI app with metadata
 app = FastAPI(
     title="FreeHekim RAG API",
@@ -37,6 +44,47 @@ app = FastAPI(
 
 # Prometheus metrics instrumentation
 Instrumentator().instrument(app).expose(app, endpoint="/metrics")
+
+
+# ============================================================================
+# Global Exception Handlers (consistent error shape)
+# ============================================================================
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(
+    request: Request, exc: RequestValidationError
+) -> JSONResponse:
+    """Return 400 with a consistent error field for validation issues."""
+    return JSONResponse(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        content={
+            "error": "Invalid request",
+            "details": exc.errors(),
+        },
+    )
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
+    """Ensure HTTPExceptions also return an error field instead of detail."""
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "error": exc.detail if isinstance(exc.detail, str) else "HTTP error",
+        },
+    )
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    """Catch-all handler to avoid leaking internals and keep shape consistent."""
+    logger.error(f"Unhandled error: {exc}", exc_info=True)
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={
+            "error": "Internal server error. Please try again later.",
+        },
+    )
 
 
 # ============================================================================
@@ -132,11 +180,13 @@ def ready() -> ReadinessResponse | JSONResponse:
         - 200 OK if Qdrant is reachable
         - 503 Service Unavailable if Qdrant is down
     """
-    from rag.client_qdrant import _qdrant
-
     try:
+        # Lazy import to avoid connection at import time
+        from rag.client_qdrant import get_qdrant_client
+
         # Try to get collections from Qdrant
-        collections = _qdrant.get_collections()
+        client = get_qdrant_client()
+        collections = client.get_collections()
         collection_names = [col.name for col in collections.collections]
 
         logger.info(f"Readiness check passed. Collections: {collection_names}")

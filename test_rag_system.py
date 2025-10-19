@@ -19,7 +19,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent / "fastapi"))
 
 from rag.embeddings import embed, embed_batch, get_embedding_dimension
-from rag.client_qdrant import _qdrant, INTERNAL, EXTERNAL
+from rag.client_qdrant import get_qdrant_client, INTERNAL, EXTERNAL
 from rag.pipeline import retrieve_answer
 from config import Settings
 
@@ -70,13 +70,14 @@ def test_qdrant_connection():
     print("=" * 60)
 
     try:
-        collections = _qdrant.get_collections().collections
+        client = get_qdrant_client()
+        collections = client.get_collections().collections
 
         print(f"✓ Connected to Qdrant")
         print(f"✓ Found {len(collections)} collections:")
 
         for col in collections:
-            info = _qdrant.get_collection(col.name)
+            info = client.get_collection(col.name)
             print(f"  - {col.name}: {info.points_count} points, {info.config.params.vectors.size} dims")
 
         print()

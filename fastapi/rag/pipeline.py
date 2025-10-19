@@ -9,7 +9,14 @@ from medical knowledge base.
 import logging
 from typing import Any
 
-from openai import OpenAI, OpenAIError
+try:  # Compatibility across openai versions
+    from openai import OpenAI, OpenAIError  # type: ignore
+except Exception:
+    from openai import OpenAI  # type: ignore
+    try:
+        from openai import APIError as OpenAIError  # type: ignore
+    except Exception:  # Last resort
+        OpenAIError = Exception  # type: ignore
 from qdrant_client.models import ScoredPoint
 
 from config import Settings

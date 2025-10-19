@@ -6,7 +6,14 @@ Supports OpenAI text-embedding-3-small (1536 dimensions)
 import logging
 from typing import Literal
 
-from openai import OpenAI, OpenAIError
+try:  # Compatibility with openai>=1.0.0
+    from openai import OpenAI, OpenAIError  # type: ignore
+except Exception:  # Fallback for newer versions where OpenAIError may be renamed
+    from openai import OpenAI  # type: ignore
+    try:
+        from openai import APIError as OpenAIError  # type: ignore
+    except Exception:  # Last resort
+        OpenAIError = Exception  # type: ignore
 
 from config import Settings
 
