@@ -16,9 +16,9 @@
 - `rag_search_seconds{collection}` (Histogram)
 - `rag_generate_seconds` (Histogram)
 - `rag_errors_total{type}` (Counter)
+ - `rag_tokens_total{model}` (Counter)
 
 ## Örnek Sorgular (PromQL)
 - İstek hızı: `rate(http_requests_total[1m])`
 - API gecikme p95: `histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket[5m])))`
 - RAG toplam p95: `histogram_quantile(0.95, sum by (le) (rate(rag_total_seconds_bucket[5m])))`
-

@@ -226,6 +226,7 @@ Prometheus metrics available at `/metrics`:
 - Request count & latency
 - Error rates
 - RAG pipeline performance
+ - Total tokens used (rag_tokens_total)
 
 Custom RAG metrics exposed:
 - `rag_total_seconds` (Histogram): total pipeline duration
@@ -233,6 +234,7 @@ Custom RAG metrics exposed:
 - `rag_search_seconds{collection}` (Histogram): search latency per collection
 - `rag_generate_seconds` (Histogram): LLM generation latency
 - `rag_errors_total{type}` (Counter): error counts by type (embedding/database/rag/unexpected)
+ - `rag_tokens_total{model}` (Counter): total OpenAI tokens used
 
 **Grafana dashboards:**
 ```bash

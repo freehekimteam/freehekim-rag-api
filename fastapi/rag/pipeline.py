@@ -72,12 +72,18 @@ try:
         "Total RAG errors",
         labelnames=("type",)
     )
+    RAG_TOKENS_TOTAL = Counter(
+        "rag_tokens_total",
+        "Total OpenAI tokens used",
+        labelnames=("model",),
+    )
 except Exception:  # Metrics are optional
     RAG_TOTAL_SECONDS = None
     RAG_EMBED_SECONDS = None
     RAG_SEARCH_SECONDS = None
     RAG_GENERATE_SECONDS = None
     RAG_ERRORS_TOTAL = None
+    RAG_TOKENS_TOTAL = None
 
 
 class RAGError(Exception):
@@ -283,6 +289,11 @@ Yukarıdaki kaynaklara dayanarak soruyu cevapla. Kaynak numaralarını belirt ve
             answer = f"{answer}\n\n{MEDICAL_DISCLAIMER}"
 
         logger.info(f"✅ Generated answer: {tokens_used} tokens, {len(answer)} chars")
+        if 'RAG_TOKENS_TOTAL' in globals() and RAG_TOKENS_TOTAL:
+            try:
+                RAG_TOKENS_TOTAL.labels(model=settings.llm_model).inc(tokens_used)
+            except Exception:
+                pass
 
         return {
             "answer": answer,
