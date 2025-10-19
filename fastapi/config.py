@@ -58,6 +58,24 @@ class Settings(BaseSettings):
         description="OpenAI embedding model (1536 or 3072 dimensions)"
     )
 
+    # LLM Configuration
+    llm_model: str = Field(
+        default="gpt-4",
+        description="LLM model for answer generation (e.g., gpt-4o, gpt-4)"
+    )
+    llm_temperature: float = Field(
+        default=0.3,
+        ge=0.0,
+        le=2.0,
+        description="LLM sampling temperature (0-2)"
+    )
+    llm_max_tokens: int = Field(
+        default=800,
+        ge=1,
+        le=8192,
+        description="Max tokens for generated answer"
+    )
+
     # API Configuration
     api_port: int = Field(
         default=8080,
@@ -74,6 +92,53 @@ class Settings(BaseSettings):
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = Field(
         default="INFO",
         description="Logging level"
+    )
+
+    # Qdrant client behavior
+    qdrant_timeout: float = Field(
+        default=10.0,
+        ge=0.1,
+        description="Qdrant client timeout in seconds"
+    )
+
+    # RAG pipeline tuning
+    search_topk: int = Field(
+        default=5,
+        ge=1,
+        le=100,
+        description="Top-K results to retrieve per collection"
+    )
+    pipeline_max_context_chunks: int = Field(
+        default=5,
+        ge=1,
+        le=20,
+        description="Max number of context chunks to feed LLM"
+    )
+    pipeline_max_source_display: int = Field(
+        default=3,
+        ge=1,
+        le=10,
+        description="Max number of sources to include in response"
+    )
+    pipeline_max_source_text_length: int = Field(
+        default=200,
+        ge=50,
+        le=2000,
+        description="Max characters per source preview"
+    )
+
+    # Basic protections
+    rate_limit_per_minute: int = Field(
+        default=60,
+        ge=1,
+        le=10000,
+        description="Requests allowed per client IP per minute"
+    )
+    max_body_size_bytes: int = Field(
+        default=1048576,
+        ge=1024,
+        le=10485760,
+        description="Maximum request body size in bytes"
     )
 
     # Model configuration

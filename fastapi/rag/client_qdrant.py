@@ -6,6 +6,7 @@ Manages connection and search operations for FreeHekim vector collections.
 
 import logging
 from typing import Any
+import time
 
 from qdrant_client import QdrantClient
 from qdrant_client.models import ScoredPoint
@@ -49,7 +50,7 @@ def get_qdrant_client() -> QdrantClient:
                 port=settings.qdrant_port,
                 api_key=settings.get_qdrant_api_key(),
                 https=settings.use_https,
-                timeout=10.0  # Connection timeout
+                timeout=settings.qdrant_timeout  # Connection timeout (configurable)
             )
 
             # Verify connection
@@ -67,7 +68,9 @@ def search(
     vector: list[float],
     topk: int = 5,
     collection: str = INTERNAL,
-    score_threshold: float | None = None
+    score_threshold: float | None = None,
+    retries: int = 2,
+    backoff: float = 0.2,
 ) -> list[ScoredPoint]:
     """
     Search for similar vectors in Qdrant collection.
@@ -99,20 +102,35 @@ def search(
         search_params = {
             "collection_name": collection,
             "query_vector": vector,
-            "limit": topk
+            "limit": topk,
         }
 
         if score_threshold is not None:
             search_params["score_threshold"] = score_threshold
 
-        results = client.search(**search_params)
+        last_exc: Exception | None = None
+        for attempt in range(retries + 1):
+            try:
+                results = client.search(**search_params)
+                logger.debug(
+                    f"Search completed: {len(results)} results from {collection} "
+                    f"(requested: {topk})"
+                )
+                return results
+            except Exception as e:  # retry on transient errors
+                last_exc = e
+                if attempt < retries:
+                    sleep_for = backoff * (2**attempt)
+                    logger.warning(
+                        f"Qdrant search error in {collection} (attempt {attempt+1}/{retries}), "
+                        f"retrying in {sleep_for:.2f}s: {e}"
+                    )
+                    time.sleep(sleep_for)
+                else:
+                    break
 
-        logger.debug(
-            f"Search completed: {len(results)} results from {collection} "
-            f"(requested: {topk})"
-        )
-
-        return results
+        assert last_exc is not None
+        raise last_exc
 
     except Exception as e:
         logger.error(f"Qdrant search error in {collection}: {e}")

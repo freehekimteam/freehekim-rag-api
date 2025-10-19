@@ -29,13 +29,6 @@ settings = Settings()
 
 # Constants
 RRF_K = 60  # Reciprocal-Rank Fusion constant
-DEFAULT_TOP_K = 5  # Default number of results to retrieve
-MAX_CONTEXT_CHUNKS = 5  # Maximum context chunks for LLM
-MAX_SOURCE_DISPLAY = 3  # Maximum sources to include in response
-MAX_SOURCE_TEXT_LENGTH = 200  # Maximum source text preview length
-GPT_MODEL = "gpt-4"  # LLM model for answer generation
-GPT_TEMPERATURE = 0.3  # Low temperature for factual responses
-GPT_MAX_TOKENS = 800  # Maximum tokens in generated answer
 
 # Medical disclaimer in Turkish
 MEDICAL_DISCLAIMER = (
@@ -45,6 +38,43 @@ MEDICAL_DISCLAIMER = (
 
 # Global OpenAI client for LLM generation
 _llm_client: OpenAI | None = None
+
+# Prometheus metrics for RAG pipeline
+try:
+    from prometheus_client import Histogram, Counter
+
+    RAG_TOTAL_SECONDS = Histogram(
+        "rag_total_seconds",
+        "Total RAG pipeline duration in seconds",
+        buckets=(0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10)
+    )
+    RAG_EMBED_SECONDS = Histogram(
+        "rag_embed_seconds",
+        "Embedding duration in seconds",
+        buckets=(0.01, 0.02, 0.05, 0.1, 0.2, 0.5)
+    )
+    RAG_SEARCH_SECONDS = Histogram(
+        "rag_search_seconds",
+        "Vector search duration in seconds",
+        labelnames=("collection",),
+        buckets=(0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1)
+    )
+    RAG_GENERATE_SECONDS = Histogram(
+        "rag_generate_seconds",
+        "LLM generation duration in seconds",
+        buckets=(0.1, 0.2, 0.5, 1, 2, 5)
+    )
+    RAG_ERRORS_TOTAL = Counter(
+        "rag_errors_total",
+        "Total RAG errors",
+        labelnames=("type",)
+    )
+except Exception:  # Metrics are optional
+    RAG_TOTAL_SECONDS = None
+    RAG_EMBED_SECONDS = None
+    RAG_SEARCH_SECONDS = None
+    RAG_GENERATE_SECONDS = None
+    RAG_ERRORS_TOTAL = None
 
 
 class RAGError(Exception):
@@ -69,7 +99,7 @@ def _get_llm_client() -> OpenAI:
         if not api_key:
             raise ValueError("OPENAI_API_KEY not configured")
         _llm_client = OpenAI(api_key=api_key)
-        logger.info(f"✅ OpenAI LLM client initialized with model: {GPT_MODEL}")
+        logger.info(f"✅ OpenAI LLM client initialized with model: {settings.llm_model}")
 
     return _llm_client
 
@@ -176,16 +206,16 @@ def generate_answer(question: str, context_chunks: list[dict[str, Any]]) -> dict
                 f"{MEDICAL_DISCLAIMER}"
             ),
             "tokens_used": 0,
-            "model": GPT_MODEL,
+            "model": settings.llm_model,
             "warning": "No context available"
         }
 
     try:
         client = _get_llm_client()
 
-        # Build context from top chunks (limit to MAX_CONTEXT_CHUNKS)
+        # Build context from top chunks (limit to configured max)
         context_parts = []
-        for i, chunk in enumerate(context_chunks[:MAX_CONTEXT_CHUNKS], start=1):
+        for i, chunk in enumerate(context_chunks[: settings.pipeline_max_context_chunks], start=1):
             text = chunk.get("text", "")
             # Truncate long texts for context window efficiency
             if len(text) > 500:
@@ -220,18 +250,29 @@ Yukarıdaki kaynaklara dayanarak soruyu cevapla. Kaynak numaralarını belirt ve
         # Call GPT-4
         logger.debug(f"Calling {GPT_MODEL} with {len(context_chunks)} context chunks")
 
-        response = client.chat.completions.create(
-            model=GPT_MODEL,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            temperature=GPT_TEMPERATURE,
-            max_tokens=GPT_MAX_TOKENS
-        )
+        last_exc: Exception | None = None
+        for attempt in range(3):
+            try:
+                response = client.chat.completions.create(
+                    model=settings.llm_model,
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt},
+                    ],
+                    temperature=settings.llm_temperature,
+                    max_tokens=settings.llm_max_tokens,
+                )
+                break
+            except OpenAIError as e:
+                last_exc = e
+                if attempt < 2:
+                    import time as _t
+                    _t.sleep(0.2 * (2**attempt))
+                    continue
+                raise
 
         answer = response.choices[0].message.content
-        tokens_used = response.usage.total_tokens
+        tokens_used = getattr(response.usage, "total_tokens", 0)
 
         # Ensure disclaimer is present (fallback if model didn't include it)
         if MEDICAL_DISCLAIMER not in answer:
@@ -243,7 +284,7 @@ Yukarıdaki kaynaklara dayanarak soruyu cevapla. Kaynak numaralarını belirt ve
         return {
             "answer": answer,
             "tokens_used": tokens_used,
-            "model": GPT_MODEL
+            "model": settings.llm_model
         }
 
     except OpenAIError as e:
@@ -255,14 +296,14 @@ Yukarıdaki kaynaklara dayanarak soruyu cevapla. Kaynak numaralarını belirt ve
             ),
             "error": f"OpenAI error: {str(e)}",
             "tokens_used": 0,
-            "model": GPT_MODEL
+            "model": settings.llm_model
         }
     except Exception as e:
         logger.error(f"Unexpected error during answer generation: {e}", exc_info=True)
         raise RAGError(f"Failed to generate answer: {e}") from e
 
 
-def retrieve_answer(q: str, top_k: int = DEFAULT_TOP_K) -> dict[str, Any]:
+def retrieve_answer(q: str, top_k: int | None = None) -> dict[str, Any]:
     """
     Main RAG pipeline: Retrieve + Rank + Generate.
 
@@ -305,13 +346,29 @@ def retrieve_answer(q: str, top_k: int = DEFAULT_TOP_K) -> dict[str, Any]:
         }
 
     try:
+        top_k = top_k or settings.search_topk
+
         # Step 1: Embed query
         logger.info(f"🔍 RAG Query: {q[:100]}{'...' if len(q) > 100 else ''}")
+        import time
+        t0 = time.perf_counter()
         query_vector = embed(q)
+        t1 = time.perf_counter()
+        if RAG_EMBED_SECONDS:
+            RAG_EMBED_SECONDS.observe(t1 - t0)
 
-        # Step 2: Search both collections in parallel
-        internal_results = search(query_vector, top_k, INTERNAL)
-        external_results = search(query_vector, top_k, EXTERNAL)
+        # Step 2: Search both collections in parallel (thread pool)
+        from concurrent.futures import ThreadPoolExecutor
+        t2 = time.perf_counter()
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            future_internal = executor.submit(search, query_vector, top_k, INTERNAL)
+            future_external = executor.submit(search, query_vector, top_k, EXTERNAL)
+            internal_results = future_internal.result()
+            external_results = future_external.result()
+        t3 = time.perf_counter()
+        if RAG_SEARCH_SECONDS:
+            RAG_SEARCH_SECONDS.labels(collection="internal").observe((t3 - t2) / 2)
+            RAG_SEARCH_SECONDS.labels(collection="external").observe((t3 - t2) / 2)
 
         logger.info(
             f"📊 Retrieved: {len(internal_results)} internal, "
@@ -353,7 +410,11 @@ def retrieve_answer(q: str, top_k: int = DEFAULT_TOP_K) -> dict[str, Any]:
         logger.info(f"📚 Using {len(context_chunks)} context chunks for answer generation")
 
         # Step 5: Generate answer with LLM
+        t4 = time.perf_counter()
         generation_result = generate_answer(q, context_chunks)
+        t5 = time.perf_counter()
+        if RAG_GENERATE_SECONDS:
+            RAG_GENERATE_SECONDS.observe(t5 - t4)
 
         # Step 6: Format response
         response = {
@@ -362,21 +423,21 @@ def retrieve_answer(q: str, top_k: int = DEFAULT_TOP_K) -> dict[str, Any]:
             "sources": [
                 {
                     "text": (
-                        chunk["text"][:MAX_SOURCE_TEXT_LENGTH] + "..."
-                        if len(chunk["text"]) > MAX_SOURCE_TEXT_LENGTH
+                        chunk["text"][: settings.pipeline_max_source_text_length] + "..."
+                        if len(chunk["text"]) > settings.pipeline_max_source_text_length
                         else chunk["text"]
                     ),
                     "source": chunk["source"],
                     "score": round(chunk["score"], 4)
                 }
-                for chunk in context_chunks[:MAX_SOURCE_DISPLAY]
+                for chunk in context_chunks[: settings.pipeline_max_source_display]
             ],
             "metadata": {
                 "internal_hits": len(internal_results),
                 "external_hits": len(external_results),
                 "fused_results": len(fused_results),
                 "tokens_used": generation_result.get("tokens_used", 0),
-                "model": generation_result.get("model", GPT_MODEL)
+                "model": generation_result.get("model", settings.llm_model)
             }
         }
 
@@ -385,10 +446,14 @@ def retrieve_answer(q: str, top_k: int = DEFAULT_TOP_K) -> dict[str, Any]:
             response["error"] = generation_result["error"]
 
         logger.info(f"✅ RAG pipeline completed successfully")
+        if RAG_TOTAL_SECONDS:
+            RAG_TOTAL_SECONDS.observe(t5 - t0)
         return response
 
     except EmbeddingError as e:
         logger.error(f"Embedding error in RAG pipeline: {e}")
+        if RAG_ERRORS_TOTAL:
+            RAG_ERRORS_TOTAL.labels(type="embedding").inc()
         return {
             "question": q,
             "answer": (
@@ -401,6 +466,8 @@ def retrieve_answer(q: str, top_k: int = DEFAULT_TOP_K) -> dict[str, Any]:
         }
     except ConnectionError as e:
         logger.error(f"Qdrant connection error in RAG pipeline: {e}")
+        if RAG_ERRORS_TOTAL:
+            RAG_ERRORS_TOTAL.labels(type="database").inc()
         return {
             "question": q,
             "answer": (
@@ -413,6 +480,8 @@ def retrieve_answer(q: str, top_k: int = DEFAULT_TOP_K) -> dict[str, Any]:
         }
     except RAGError as e:
         logger.error(f"RAG pipeline error: {e}")
+        if RAG_ERRORS_TOTAL:
+            RAG_ERRORS_TOTAL.labels(type="rag").inc()
         return {
             "question": q,
             "answer": (
@@ -425,6 +494,8 @@ def retrieve_answer(q: str, top_k: int = DEFAULT_TOP_K) -> dict[str, Any]:
         }
     except Exception as e:
         logger.error(f"Unexpected error in RAG pipeline: {e}", exc_info=True)
+        if RAG_ERRORS_TOTAL:
+            RAG_ERRORS_TOTAL.labels(type="unexpected").inc()
         return {
             "question": q,
             "answer": (

@@ -5,6 +5,7 @@ Supports OpenAI text-embedding-3-small (1536 dimensions)
 
 import logging
 from typing import Literal
+import time
 
 try:  # Compatibility with openai>=1.0.0
     from openai import OpenAI, OpenAIError  # type: ignore
@@ -78,11 +79,21 @@ def embed(text: str) -> list[float]:
     if settings.embed_provider == "openai":
         try:
             client = _get_openai_client()
-            response = client.embeddings.create(
-                model=settings.openai_embedding_model,
-                input=text,
-                encoding_format="float"
-            )
+            last_exc: Exception | None = None
+            for attempt in range(3):
+                try:
+                    response = client.embeddings.create(
+                        model=settings.openai_embedding_model,
+                        input=text,
+                        encoding_format="float",
+                    )
+                    break
+                except OpenAIError as e:
+                    last_exc = e
+                    if attempt < 2:
+                        time.sleep(0.2 * (2**attempt))
+                        continue
+                    raise
             embedding = response.data[0].embedding
             logger.debug(f"Generated embedding for text (length: {len(text)} chars)")
             return embedding
@@ -153,11 +164,21 @@ def embed_batch(texts: list[str], batch_size: int = 100) -> list[list[float]]:
 
                 logger.info(f"Processing batch {batch_num}/{total_batches}: {len(batch)} texts")
 
-                response = client.embeddings.create(
-                    model=settings.openai_embedding_model,
-                    input=batch,
-                    encoding_format="float"
-                )
+                last_exc: Exception | None = None
+                for attempt in range(3):
+                    try:
+                        response = client.embeddings.create(
+                            model=settings.openai_embedding_model,
+                            input=batch,
+                            encoding_format="float",
+                        )
+                        break
+                    except OpenAIError as e:
+                        last_exc = e
+                        if attempt < 2:
+                            time.sleep(0.2 * (2**attempt))
+                            continue
+                        raise
 
                 batch_embeddings = [item.embedding for item in response.data]
                 all_embeddings.extend(batch_embeddings)

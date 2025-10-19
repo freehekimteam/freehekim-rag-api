@@ -11,6 +11,11 @@ from typing import Any
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.types import ASGIApp
+import time
+import uuid
+from collections import deque, defaultdict
 from prometheus_fastapi_instrumentator import Instrumentator
 from pydantic import BaseModel, Field, field_validator
 
@@ -86,6 +91,90 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
         },
     )
 
+
+# ============================================================================
+# Basic Protections & Observability Middlewares
+# ============================================================================
+
+class RequestIDMiddleware(BaseHTTPMiddleware):
+    """Attach a unique request id to each request and response."""
+
+    def __init__(self, app: ASGIApp) -> None:
+        super().__init__(app)
+
+    async def dispatch(self, request: Request, call_next):
+        req_id = str(uuid.uuid4())
+        start = time.perf_counter()
+        try:
+            response = await call_next(request)
+        finally:
+            duration = (time.perf_counter() - start) * 1000
+            logger.info(
+                f"{request.method} {request.url.path} - {duration:.1f}ms - X-Request-ID={req_id}"
+            )
+        response.headers["X-Request-ID"] = req_id
+        return response
+
+
+class BodySizeLimitMiddleware(BaseHTTPMiddleware):
+    """Reject requests with Content-Length exceeding configured limit."""
+
+    def __init__(self, app: ASGIApp, max_bytes: int) -> None:
+        super().__init__(app)
+        self.max_bytes = max_bytes
+
+    async def dispatch(self, request: Request, call_next):
+        try:
+            content_length = request.headers.get("content-length")
+            if content_length is not None and int(content_length) > self.max_bytes:
+                return JSONResponse(
+                    status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                    content={"error": "Request body too large"},
+                )
+        except Exception:
+            # Fail-open for safety; downstream may still reject
+            pass
+        return await call_next(request)
+
+
+class RateLimitMiddleware(BaseHTTPMiddleware):
+    """Very simple per-IP sliding window rate limiter."""
+
+    def __init__(self, app: ASGIApp, requests_per_minute: int) -> None:
+        super().__init__(app)
+        self.limit = requests_per_minute
+        self.window_seconds = 60
+        self.state: dict[str, deque] = defaultdict(deque)
+
+    def _client_ip(self, request: Request) -> str:
+        fwd = request.headers.get("x-forwarded-for")
+        if fwd:
+            return fwd.split(",")[0].strip()
+        return request.client.host if request.client else "unknown"
+
+    async def dispatch(self, request: Request, call_next):
+        now = time.monotonic()
+        ip = self._client_ip(request)
+
+        q = self.state[ip]
+        # purge old
+        while q and now - q[0] > self.window_seconds:
+            q.popleft()
+
+        if len(q) >= self.limit:
+            return JSONResponse(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                content={"error": "Rate limit exceeded"},
+            )
+
+        q.append(now)
+        return await call_next(request)
+
+
+# Install middlewares
+app.add_middleware(RequestIDMiddleware)
+app.add_middleware(BodySizeLimitMiddleware, max_bytes=settings.max_body_size_bytes)
+app.add_middleware(RateLimitMiddleware, requests_per_minute=settings.rate_limit_per_minute)
 
 # ============================================================================
 # Pydantic Models for Request/Response Validation
