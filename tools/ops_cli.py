@@ -53,7 +53,7 @@ class OpsCLI:
             ("Hızlı RAG Testi", self.quick_rag_test),
             ("Koruma Ayarları (Bilgi)", self.protection_info),
             ("Cache Durumu / Temizle", self.cache_view_flush),
-            (".env Öneri Yazdır (dosya)", self.write_env_suggestion),
+            ("Profil Önerileri (.env yazdır)", self.write_env_profiles),
             ("Çıkış", self.exit_app),
         ]
         self.selected = 0
@@ -251,41 +251,62 @@ class OpsCLI:
 
             self.menu_items[self.selected] = ("Cache Temizle (Onay)", _flush_once)
 
-    def write_env_suggestion(self) -> None:
+    def write_env_profiles(self) -> None:
+        """Write cost/performance optimized .env suggestion files."""
         self.clear_output()
         s = self.settings
         now = datetime.now().strftime("%Y%m%d_%H%M")
         outdir = Path(__file__).parent.parent / "docs" / "env-suggestions"
         outdir.mkdir(parents=True, exist_ok=True)
-        outfile = outdir / f"env_suggestion_{now}.env"
 
-        # Heuristic suggestions for cost/perf
-        suggest_llm_model = s.llm_model
-        if "gpt-4o-mini" not in s.llm_model.lower():
-            suggest_llm_model = "gpt-4o-mini"
-
-        suggest = {
-            "LLM_MODEL": suggest_llm_model,
-            "LLM_MAX_TOKENS": str(min(s.llm_max_tokens, 400)),
-            "SEARCH_TOPK": str(min(s.search_topk, 3)),
-            "PIPELINE_MAX_CONTEXT_CHUNKS": str(min(s.pipeline_max_context_chunks, 3)),
-            "PIPELINE_MAX_SOURCE_DISPLAY": str(min(s.pipeline_max_source_display, 3)),
-            "PIPELINE_MAX_SOURCE_TEXT_LENGTH": str(min(s.pipeline_max_source_text_length, 200)),
+        # Cost-optimized profile
+        cost = {
+            "# profile": "cost-optimized",
+            "LLM_MODEL": "gpt-4o-mini",
+            "LLM_MAX_TOKENS": "400",
+            "SEARCH_TOPK": "3",
+            "PIPELINE_MAX_CONTEXT_CHUNKS": "3",
+            "PIPELINE_MAX_SOURCE_DISPLAY": "3",
+            "PIPELINE_MAX_SOURCE_TEXT_LENGTH": "200",
             "ENABLE_CACHE": "true",
-            "CACHE_TTL_SECONDS": str(max(120, s.cache_ttl_seconds)),
+            "CACHE_TTL_SECONDS": "600",
+            # Keep timeouts modest
+            "QDRANT_TIMEOUT": str(max(5.0, getattr(s, "qdrant_timeout", 10.0))),
         }
-
-        lines = [
+        cost_file = outdir / f"env_suggestion_cost_{now}.env"
+        cost_lines = [
             "# Auto-generated .env suggestion (manual apply)",
             f"# {datetime.now().isoformat(timespec='minutes')}",
             "",
         ]
-        for k, v in suggest.items():
-            lines.append(f"{k}={v}")
+        cost_lines += [f"{k}={v}" for k, v in cost.items()]
+        cost_file.write_text("\n".join(cost_lines), encoding="utf-8")
 
-        outfile.write_text("\n".join(lines), encoding="utf-8")
-        self.print_ok(f"Öneri dosyası yazıldı: {outfile}")
-        self.print_warn("Not: Mevcut .env dosyası otomatik DEĞİŞTİRİLMEDİ. Manuel kontrol önerilir.")
+        # Performance-optimized profile
+        perf = {
+            "# profile": "performance-optimized",
+            "LLM_MODEL": s.llm_model if s.llm_model.lower().startswith("gpt-4") else "gpt-4o",
+            "LLM_MAX_TOKENS": "700",
+            "SEARCH_TOPK": "6",
+            "PIPELINE_MAX_CONTEXT_CHUNKS": "6",
+            "PIPELINE_MAX_SOURCE_DISPLAY": "4",
+            "PIPELINE_MAX_SOURCE_TEXT_LENGTH": "300",
+            "ENABLE_CACHE": "true",
+            "CACHE_TTL_SECONDS": "180",
+            "QDRANT_TIMEOUT": "6.0",
+        }
+        perf_file = outdir / f"env_suggestion_perf_{now}.env"
+        perf_lines = [
+            "# Auto-generated .env suggestion (manual apply)",
+            f"# {datetime.now().isoformat(timespec='minutes')}",
+            "",
+        ]
+        perf_lines += [f"{k}={v}" for k, v in perf.items()]
+        perf_file.write_text("\n".join(perf_lines), encoding="utf-8")
+
+        self.print_ok(f"Maliyet odaklı öneri: {cost_file}")
+        self.print_ok(f"Performans odaklı öneri: {perf_file}")
+        self.print_warn("Not: Bu dosyalar birer öneridir. Mevcut .env otomatik DEĞİŞTİRİLMEDİ.")
 
     def exit_app(self) -> None:
         self.app.exit()

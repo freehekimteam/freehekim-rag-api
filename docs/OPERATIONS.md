@@ -40,6 +40,10 @@ Menü başlıkları:
 - Hızlı RAG Testi (tek soru/cevap)
 - Koruma Ayarları (bilgilendirme)
 - Cache Durumu / Temizle (opsiyonel)
+- Profil Önerileri (.env yazdır):
+  - Maliyet Odaklı: `gpt-4o-mini`, daha düşük token/bağlam ve daha uzun cache TTL.
+  - Performans Odaklı: `gpt-4o`/`gpt-4`, daha yüksek token/topK/bağlam ve kısa cache TTL.
+  - Not: Üretilen dosyalar `docs/env-suggestions/` klasörüne yazılır, mevcut `.env` otomatik değişmez.
 
 ## Geri Alma (Rollback)
 - Önceki imaj/etiketle compose’ı yeniden başlatın
