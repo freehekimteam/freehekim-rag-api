@@ -153,6 +153,16 @@ class Settings(BaseSettings):
         description="TTL for in-memory cache (seconds)"
     )
 
+    # Simple API key protection for /rag/query
+    require_api_key: bool = Field(
+        default=False,
+        description="Require X-Api-Key header for protected endpoints"
+    )
+    api_key: SecretStr | None = Field(
+        default=None,
+        description="API key value for X-Api-Key header (set when require_api_key=true)"
+    )
+
     # Model configuration
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -186,6 +196,10 @@ class Settings(BaseSettings):
     def get_openai_api_key(self) -> str | None:
         """Get plain text OpenAI API key"""
         return self.openai_api_key.get_secret_value() if self.openai_api_key else None
+
+    def get_api_key(self) -> str | None:
+        """Get plain text API key for request authentication"""
+        return self.api_key.get_secret_value() if self.api_key else None
 
     @property
     def use_https(self) -> bool:

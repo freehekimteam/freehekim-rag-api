@@ -50,6 +50,7 @@ Basit hedefler (ilk faz):
   - `POST /rag/query` body: `{ "q": "Diyabet belirtileri nelerdir?" }`
   - Başarılı cevap: `answer`, `sources[]`, `metadata{}` alanları
   - Hatalar: `400 {"error": "Invalid request"}`, `429`, `413`, `500`
+  - Güvenlik (opsiyonel): `REQUIRE_API_KEY=true` ise `X-Api-Key: <key>` header’ı ile çağırın.
 - Log ve izleme:
   - İstek başına `X-Request-ID` header’ı
   - `/metrics` ile Prometheus metrikleri + özel RAG metrikleri

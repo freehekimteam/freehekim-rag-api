@@ -313,7 +313,7 @@ def ready() -> ReadinessResponse | JSONResponse:
         500: {"description": "Internal server error"}
     }
 )
-def rag_query(request: RAGQueryRequest) -> RAGQueryResponse:
+def rag_query(request: RAGQueryRequest, raw: Request) -> RAGQueryResponse:
     """
     Query the RAG pipeline to get AI-generated answers from medical knowledge base.
 
@@ -338,6 +338,13 @@ def rag_query(request: RAGQueryRequest) -> RAGQueryResponse:
         ```
     """
     try:
+        # Optional API key check
+        if settings.require_api_key:
+            provided = raw.headers.get("x-api-key") or raw.headers.get("X-Api-Key")
+            expected = settings.get_api_key()
+            if not expected or not provided or provided != expected:
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
+
         logger.info(f"Received RAG query: {request.q[:50]}...")
         result = retrieve_answer(request.q)
         return RAGQueryResponse(**result)

@@ -10,6 +10,8 @@ from __future__ import annotations
 import sys
 import traceback
 from pathlib import Path
+from datetime import datetime
+import os
 from typing import Any, Callable
 
 from prompt_toolkit import Application
@@ -51,6 +53,7 @@ class OpsCLI:
             ("Hızlı RAG Testi", self.quick_rag_test),
             ("Koruma Ayarları (Bilgi)", self.protection_info),
             ("Cache Durumu / Temizle", self.cache_view_flush),
+            (".env Öneri Yazdır (dosya)", self.write_env_suggestion),
             ("Çıkış", self.exit_app),
         ]
         self.selected = 0
@@ -248,6 +251,42 @@ class OpsCLI:
 
             self.menu_items[self.selected] = ("Cache Temizle (Onay)", _flush_once)
 
+    def write_env_suggestion(self) -> None:
+        self.clear_output()
+        s = self.settings
+        now = datetime.now().strftime("%Y%m%d_%H%M")
+        outdir = Path(__file__).parent.parent / "docs" / "env-suggestions"
+        outdir.mkdir(parents=True, exist_ok=True)
+        outfile = outdir / f"env_suggestion_{now}.env"
+
+        # Heuristic suggestions for cost/perf
+        suggest_llm_model = s.llm_model
+        if "gpt-4o-mini" not in s.llm_model.lower():
+            suggest_llm_model = "gpt-4o-mini"
+
+        suggest = {
+            "LLM_MODEL": suggest_llm_model,
+            "LLM_MAX_TOKENS": str(min(s.llm_max_tokens, 400)),
+            "SEARCH_TOPK": str(min(s.search_topk, 3)),
+            "PIPELINE_MAX_CONTEXT_CHUNKS": str(min(s.pipeline_max_context_chunks, 3)),
+            "PIPELINE_MAX_SOURCE_DISPLAY": str(min(s.pipeline_max_source_display, 3)),
+            "PIPELINE_MAX_SOURCE_TEXT_LENGTH": str(min(s.pipeline_max_source_text_length, 200)),
+            "ENABLE_CACHE": "true",
+            "CACHE_TTL_SECONDS": str(max(120, s.cache_ttl_seconds)),
+        }
+
+        lines = [
+            "# Auto-generated .env suggestion (manual apply)",
+            f"# {datetime.now().isoformat(timespec='minutes')}",
+            "",
+        ]
+        for k, v in suggest.items():
+            lines.append(f"{k}={v}")
+
+        outfile.write_text("\n".join(lines), encoding="utf-8")
+        self.print_ok(f"Öneri dosyası yazıldı: {outfile}")
+        self.print_warn("Not: Mevcut .env dosyası otomatik DEĞİŞTİRİLMEDİ. Manuel kontrol önerilir.")
+
     def exit_app(self) -> None:
         self.app.exit()
 
@@ -271,4 +310,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

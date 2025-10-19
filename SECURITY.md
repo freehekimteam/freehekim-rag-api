@@ -10,3 +10,4 @@
 - Request body size limit (default: 1 MB; configurable via `MAX_BODY_SIZE_BYTES`).
 - Uniform error responses avoid leaking internals; generic 500 message.
 - Request ID header (`X-Request-ID`) for traceability.
+- Optional API key: Enable `REQUIRE_API_KEY=true` and distribute a secret `API_KEY`. Clients must send `X-Api-Key`.

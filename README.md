@@ -141,6 +141,7 @@ Notes:
 - Validation errors return `400` with body `{ "error": "Invalid request", "details": [...] }`.
 - Rate limiting returns `429` with `{ "error": "Rate limit exceeded" }`.
 - Oversized requests return `413` with `{ "error": "Request body too large" }`.
+- Optional security: set `REQUIRE_API_KEY=true` and send `X-Api-Key: <value>` header (see `.env.example`).
 
 ### Example Request
 
