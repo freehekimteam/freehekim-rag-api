@@ -5,3 +5,7 @@ pydantic==2.9.2
 httpx>=0.27
 numpy
 python-dotenv
+pydantic-settings
+openai>=1.0.0
+prometheus-fastapi-instrumentator==7.0.0
+python-json-logger>=2.0.7

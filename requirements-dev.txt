@@ -1,0 +1,31 @@
+# Development Dependencies for FreeHekim RAG API
+# Install with: pip install -r requirements-dev.txt
+
+# Code Quality & Linting
+ruff==0.8.4                    # Fast Python linter & formatter (replaces flake8, black, isort)
+mypy==1.13.0                   # Static type checker
+types-requests                 # Type stubs for requests
+
+# Testing
+pytest==8.3.4                  # Testing framework
+pytest-cov==6.0.0             # Coverage plugin for pytest
+pytest-asyncio==0.24.0        # Async support for pytest
+httpx==0.28.1                  # Already in main requirements, but needed for TestClient
+
+# Testing utilities
+faker==33.1.0                  # Generate fake data for tests
+freezegun==1.5.1              # Mock datetime in tests
+
+# Documentation
+mkdocs==1.6.1                 # Documentation generator
+mkdocs-material==9.5.47       # Material theme for MkDocs
+mkdocstrings[python]==0.27.0  # Auto-generate docs from docstrings
+
+# Development Tools
+ipython==8.30.0               # Enhanced Python shell
+ipdb==0.13.13                 # IPython debugger
+rich==13.9.4                  # Beautiful terminal output
+prompt-toolkit==3.0.48        # Interactive CLI applications
+
+# Pre-commit hooks
+pre-commit==4.0.1             # Git hook management
