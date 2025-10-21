@@ -1,0 +1,15 @@
+name: Release (on tag)
+
+on:
+  push:
+    tags: ['v*.*.*']
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, linux]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy compose
+        run: |
+          docker compose -f deployment/docker/docker-compose.server.yml pull
+          docker compose -f deployment/docker/docker-compose.server.yml up -d
