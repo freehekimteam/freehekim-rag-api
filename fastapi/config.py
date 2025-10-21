@@ -93,6 +93,10 @@ class Settings(BaseSettings):
         default="INFO",
         description="Logging level"
     )
+    log_json: bool = Field(
+        default=False,
+        description="Enable JSON logging format"
+    )
 
     # Qdrant client behavior
     qdrant_timeout: float = Field(

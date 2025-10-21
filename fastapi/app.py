@@ -23,21 +23,33 @@ from pydantic import BaseModel, Field, field_validator
 from config import Settings
 from rag.pipeline import retrieve_answer
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
+# Configure logging (plain or JSON)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Initialize settings
 settings = Settings()
 
-# Align logger level with settings
-try:
-    logging.getLogger().setLevel(getattr(logging, settings.log_level, logging.INFO))
-except Exception:
-    pass
+def _configure_logging() -> None:
+    try:
+        logging.getLogger().setLevel(getattr(logging, settings.log_level, logging.INFO))
+        if settings.log_json:
+            try:
+                from pythonjsonlogger import jsonlogger
+            except Exception:
+                logger.warning("JSON logging requested but python-json-logger not installed; using plain logs")
+                return
+            root = logging.getLogger()
+            for h in list(root.handlers):
+                root.removeHandler(h)
+            handler = logging.StreamHandler()
+            formatter = jsonlogger.JsonFormatter("%(asctime)s %(levelname)s %(name)s %(message)s")
+            handler.setFormatter(formatter)
+            root.addHandler(handler)
+    except Exception:
+        pass
+
+_configure_logging()
 
 # FastAPI app with metadata
 @asynccontextmanager
