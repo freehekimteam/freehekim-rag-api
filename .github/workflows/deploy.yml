@@ -1,0 +1,20 @@
+name: Deploy (manual)
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, linux]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Docker Compose Up
+        run: |
+          docker compose -f deployment/docker/docker-compose.server.yml pull
+          docker compose -f deployment/docker/docker-compose.server.yml up -d
+
