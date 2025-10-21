@@ -16,6 +16,7 @@ from starlette.types import ASGIApp
 import time
 import uuid
 from collections import deque, defaultdict
+from contextlib import asynccontextmanager
 from prometheus_fastapi_instrumentator import Instrumentator
 from pydantic import BaseModel, Field, field_validator
 
@@ -39,12 +40,26 @@ except Exception:
     pass
 
 # FastAPI app with metadata
+@asynccontextmanager
+async def _lifespan(app: FastAPI):
+    # Startup
+    logger.info(f"🚀 FreeHekim RAG API starting in {settings.env} mode")
+    logger.info(f"📊 Qdrant: {settings.qdrant_host}:{settings.qdrant_port}")
+    logger.info(f"🤖 Embedding provider: {settings.embed_provider}")
+    try:
+        yield
+    finally:
+        # Shutdown
+        logger.info("🛑 FreeHekim RAG API shutting down")
+
+
 app = FastAPI(
     title="FreeHekim RAG API",
     description="Retrieval-Augmented Generation API for FreeHekim medical content",
     version="1.0.0",
     docs_url="/docs" if settings.env != "production" else None,  # Disable in prod
     redoc_url="/redoc" if settings.env != "production" else None,
+    lifespan=_lifespan,
 )
 
 # Prometheus metrics instrumentation
@@ -366,15 +381,4 @@ def rag_query(request: RAGQueryRequest, raw: Request) -> RAGQueryResponse:
 # Startup/Shutdown Events
 # ============================================================================
 
-@app.on_event("startup")
-async def startup_event() -> None:
-    """Log startup information"""
-    logger.info(f"🚀 FreeHekim RAG API starting in {settings.env} mode")
-    logger.info(f"📊 Qdrant: {settings.qdrant_host}:{settings.qdrant_port}")
-    logger.info(f"🤖 Embedding provider: {settings.embed_provider}")
-
-
-@app.on_event("shutdown")
-async def shutdown_event() -> None:
-    """Cleanup on shutdown"""
-    logger.info("🛑 FreeHekim RAG API shutting down")
+# Lifespan handler replaces deprecated on_event startup/shutdown

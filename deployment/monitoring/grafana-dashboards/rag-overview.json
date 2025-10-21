@@ -128,6 +128,18 @@
           "legendFormat": "{{type}}"
         }
       ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Tokens per minute",
+      "gridPos": { "x": 12, "y": 24, "w": 12, "h": 8 },
+      "datasource": "${DS_PROMETHEUS}",
+      "targets": [
+        {
+          "expr": "sum by (model) (rate(rag_tokens_total[1m]))",
+          "legendFormat": "{{model}}"
+        }
+      ]
     }
   ],
   "refresh": "30s",
@@ -149,4 +161,3 @@
   "title": "FreeHekim RAG – Overview",
   "version": 1
 }
-
