@@ -1,4 +1,21 @@
-# İzleme ve Paneller
+# İzleme ve Paneller (Opsiyonel)
+
+Bu VPS kurulumunda sistem sadeleştirilmiştir ve monitoring (Prometheus, Grafana) varsayılan olarak kapalıdır. İhtiyaç halinde kolayca açıp kapatabilirsiniz.
+
+Monitoring’i etkinleştir:
+
+```bash
+cd ~/freehekim-rag-api
+docker compose -f deployment/docker/docker-compose.server.yml \
+               -f deployment/docker/docker-compose.monitoring.yml up -d
+```
+
+Monitoring’i durdur (yalnızca izleme servisleri):
+
+```bash
+docker stop docker-grafana-1 docker-prometheus-1 docker-alertmanager-1 2>/dev/null || true
+docker rm   docker-grafana-1 docker-prometheus-1 docker-alertmanager-1 2>/dev/null || true
+```
 
 ## Prometheus
 - Scrape: API → `/metrics`, Qdrant → `/metrics`

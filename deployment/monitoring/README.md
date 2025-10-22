@@ -4,7 +4,9 @@ This directory contains Prometheus and Grafana configuration files for FreeHekim
 
 **✅ All configs are in the repo** - No manual copying needed!
 
-## Deployment Instructions
+## Deployment Instructions (Optional Stack)
+
+This monitoring stack is optional and disabled by default on the production VPS to keep the system minimal. Enable only when needed.
 
 ### 1. Create data directories (first time only)
 
@@ -30,7 +32,14 @@ docker compose -f deployment/docker/docker-compose.server.yml \
                -f deployment/docker/docker-compose.monitoring.yml restart prometheus grafana
 ```
 
-### 3. Access dashboards
+Stop and remove monitoring stack:
+
+```bash
+docker stop docker-grafana-1 docker-prometheus-1 docker-alertmanager-1 2>/dev/null || true
+docker rm   docker-grafana-1 docker-prometheus-1 docker-alertmanager-1 2>/dev/null || true
+```
+
+### 3. Access dashboards (when enabled)
 
 - **Prometheus:** http://localhost:9090
 - **Grafana:** http://localhost:3000
@@ -39,7 +48,7 @@ docker compose -f deployment/docker/docker-compose.server.yml \
 
 **Note:** Datasource is auto-configured via `grafana-datasources.yml`
 
-### 4. Check alert rules & alerts
+### 4. Check alert rules & alerts (when enabled)
 
 ```bash
 # View loaded alerts

@@ -223,9 +223,28 @@ pytest --cov=fastapi tests/
 5. **Answer Generation:** GPT-4 (configurable) generates answer with citations
 6. **Disclaimer Injection:** Automatic medical liability disclaimer (Turkish)
 
-## Monitoring
+## Monitoring (Optional)
 
-Prometheus metrics available at `/metrics`:
+This VPS is streamlined: monitoring stack (Prometheus/Grafana) is disabled by default.
+
+Prometheus metrics are still available at `/metrics` and can be scraped if you enable the stack.
+
+Enable monitoring when needed:
+
+```bash
+cd ~/freehekim-rag-api
+docker compose -f deployment/docker/docker-compose.server.yml \
+               -f deployment/docker/docker-compose.monitoring.yml up -d
+```
+
+Disable monitoring (stop and remove Grafana/Prometheus):
+
+```bash
+docker stop docker-grafana-1 docker-prometheus-1 docker-alertmanager-1 2>/dev/null || true
+docker rm   docker-grafana-1 docker-prometheus-1 docker-alertmanager-1 2>/dev/null || true
+```
+
+Metrics exposed by the API:
 - Request count & latency
 - Error rates
 - RAG pipeline performance
@@ -237,7 +256,7 @@ Custom RAG metrics exposed:
 - `rag_search_seconds{collection}` (Histogram): search latency per collection
 - `rag_generate_seconds` (Histogram): LLM generation latency
 - `rag_errors_total{type}` (Counter): error counts by type (embedding/database/rag/unexpected)
- - `rag_tokens_total{model}` (Counter): total OpenAI tokens used
+- `rag_tokens_total{model}` (Counter): total OpenAI tokens used
 
 ## Qdrant Maintenance
 

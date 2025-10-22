@@ -90,13 +90,28 @@ def main() -> int:
             print("Aborted.")
             return 1
 
-    client = QdrantClient(
-        host=settings.qdrant_host,
-        port=settings.qdrant_port,
-        api_key=settings.get_qdrant_api_key(),
-        https=settings.use_https,
-        timeout=settings.qdrant_timeout,
-    )
+    # Build client with fallback for host network context (host vs container)
+    def build_client(host: str) -> QdrantClient:
+        return QdrantClient(
+            host=host,
+            port=settings.qdrant_port,
+            api_key=settings.get_qdrant_api_key(),
+            https=settings.use_https,
+            timeout=settings.qdrant_timeout,
+        )
+
+    client: QdrantClient
+    try:
+        client = build_client(settings.qdrant_host)
+        # quick probe
+        client.get_collections()
+    except Exception:
+        if settings.qdrant_host != "127.0.0.1":
+            print("Primary host not reachable, trying 127.0.0.1 …")
+            client = build_client("127.0.0.1")
+            client.get_collections()
+        else:
+            raise
 
     # Drop and recreate
     for name in cols:
@@ -119,4 +134,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
