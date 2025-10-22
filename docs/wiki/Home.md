@@ -18,10 +18,10 @@ Bu wiki, projeyi A’dan Z’ye kapsayan kurumsal seviyede bir başvuru kaynağ�
 - Sürüm Süreci: Release-Process.md
 - AI Engine Pro Entegrasyonu: Integration-AI-Engine-Pro.md
 - Ops CLI: Ops-CLI.md
+- CLI Kullanımı: CLI-Usage.md
 - Qdrant Rehberi: Qdrant-Guide.md
 - Metrikler: Metrics.md
 - Terimler Sözlüğü: Glossary.md
 - Yol Haritası: Roadmap.md
 
 Önemli: Bu wiki’deki başlıklar repository içindeki dokümanlarla (docs/*.md) uyumludur ve gerekli yerlerde güncel örnekleri referans gösterir.
-

@@ -278,6 +278,27 @@ ruff check fastapi
 # Format code
 ruff format fastapi
 
+### CLI Kullanımı
+
+FreeHekim RAG için zengin bir CLI mevcuttur. Hem yerel (local pipeline) hem de uzaktaki API ile (remote) çalışabilir.
+
+Temel komutlar:
+- Interaktif TUI (yerel):
+  - `python3 cli.py`
+- Interaktif TUI (uzak API):
+  - `python3 cli.py --remote-url https://rag.hakancloud.com --api-key <KEY>`
+  - Env desteği: `RAG_API_URL` ve `RAG_API_KEY`
+- Tek seferlik sorgu:
+  - Yerel: `python3 cli.py -q "Diyabet nedir?"`
+  - Uzak: `python3 cli.py -q "..." --remote-url https://... --api-key <KEY>`
+
+Kısayollar:
+- `Ctrl+R`: Sorguyu gönder
+- `Ctrl+H`: Geçmişi göster
+- `Ctrl+L`: Ekranı temizle
+- `F1`: Yardım
+- `Ctrl+S`: Son sonucu Markdown olarak dışa aktar (`docs/cli-exports/`)
+
 ### Ops CLI (Bakım/Teşhis Aracı)
 
 Hızlı bakım ve teşhis için basit bir TUI:
