@@ -2,6 +2,28 @@
 
 All notable changes to the FreeHekim RAG API project.
 
+## [2.2.2] - 2025-10-22 - CI/CD Fixes & GHCR Push
+
+### Fixed
+- Release workflow: use ghcr.io/<owner>/<repo>:tag path (was nested path)
+
+### Added
+- GHCR push for tags (using GITHUB_TOKEN; packages: write)
+- Trivy workflow for image scanning on dev
+
+### Changed
+- Deploy/Release workflows: harden checkout, sanitize legacy .wiki-publish, use local image fallback when registry is unavailable
+
+## [2.2.1] - 2025-10-22 - CI/CD Patch & Runner Hardening
+
+### Added
+- Local image fallback: tag docker-api:latest → ghcr.io/<owner>/<repo>:dev in workflows
+- Self-hosted runner documentation and scripts; service-based runner under /opt/actions-runner
+
+### Changed
+- Deploy (manual): docker info, pull || true + up -d
+- Wiki: CLI Usage page; CI/CD page updated
+
 ## [2.0.0] - 2025-10-16 - Major Code Quality & Feature Release
 
 ### 🎯 Overview

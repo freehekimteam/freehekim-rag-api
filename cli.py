@@ -6,10 +6,11 @@ Interactive terminal interface for querying the FreeHekim RAG system.
 Uses arrow keys for navigation and Enter/Space for selection.
 """
 
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 from prompt_toolkit import Application
 from prompt_toolkit.buffer import Buffer
@@ -35,6 +36,10 @@ sys.path.insert(0, str(Path(__file__).parent / "fastapi"))
 
 from config import Settings
 from rag.pipeline import retrieve_answer
+try:
+    import httpx  # type: ignore
+except Exception:
+    httpx = None  # type: ignore
 
 # ============================================================================
 # Configuration
@@ -43,8 +48,14 @@ from rag.pipeline import retrieve_answer
 console = Console()
 settings = Settings()
 
-# History file
+# History / export paths
 HISTORY_FILE = Path.home() / ".freehekim_rag_history.txt"
+EXPORT_DIR = Path.cwd() / "docs" / "cli-exports"
+EXPORT_DIR.mkdir(parents=True, exist_ok=True)
+
+# Optional remote API config via env (can be overridden with args)
+DEFAULT_REMOTE_URL = os.environ.get("RAG_API_URL", "").strip()
+DEFAULT_API_KEY = os.environ.get("RAG_API_KEY", "").strip()
 
 
 # ============================================================================
@@ -72,11 +83,14 @@ cli_style = Style.from_dict(
 class FreeHekimCLI:
     """Interactive CLI for FreeHekim RAG"""
 
-    def __init__(self):
+    def __init__(self, remote_url: str = "", api_key: str = "", timeout: float = 15.0):
         self.question_buffer = Buffer()
         self.result_text = ""
         self.status_text = "🟢 Hazır - Sorunuzu yazın..."
         self.query_history: list[dict[str, Any]] = []
+        self.remote_url = remote_url.strip()
+        self.api_key = api_key.strip()
+        self.timeout = timeout
         self.load_history()
 
         # Key bindings
@@ -127,6 +141,11 @@ class FreeHekimCLI:
             """Show help"""
             self.show_help()
 
+        @self.kb.add("c-s")
+        def _(event):
+            """Export last result to markdown"""
+            self.export_last()
+
     def _create_layout(self):
         """Create the application layout"""
 
@@ -135,8 +154,15 @@ class FreeHekimCLI:
             content=FormattedTextControl(
                 text=lambda: [
                     ("class:header", " 🏥 FreeHekim RAG - Interactive CLI "),
-                    ("", " " * 50),
-                    ("class:header", f" {settings.env.upper()} ")
+                    ("", " " * 18),
+                    (
+                        "class:header",
+                        (
+                            f" MODE=REMOTE {self.remote_url} "
+                            if self.remote_url
+                            else f" MODE=LOCAL  ENV={settings.env.upper()} "
+                        ),
+                    ),
                 ]
             ),
             height=Dimension.exact(1),
@@ -209,7 +235,10 @@ class FreeHekimCLI:
             self.app.invalidate()
 
             # Query RAG
-            result = retrieve_answer(question)
+            if self.remote_url:
+                result = self._request_remote(question)
+            else:
+                result = retrieve_answer(question)
 
             # Format result
             self.result_text = self._format_result(result)
@@ -225,6 +254,34 @@ class FreeHekimCLI:
             self.result_text = f"\n❌ Hata:\n{str(e)}\n"
             self.status_text = f"❌ Hata: {str(e)[:50]}"
 
+        self.app.invalidate()
+
+    def _export_markdown(self, result: dict[str, Any]) -> str:
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        path = EXPORT_DIR / f"rag_cli_{ts}.md"
+        lines = [f"# FreeHekim RAG — {ts}", "", f"**Soru:** {result.get('question','')}", "", result.get("answer", "")]
+        sources = result.get("sources", [])
+        if sources:
+            lines.append("")
+            lines.append("## Kaynaklar")
+            for i, s in enumerate(sources, 1):
+                lines.append(f"- [Kaynak {i}] ({s.get('source')}): {s.get('text','')}")
+        with open(path, "w", encoding="utf-8") as f:
+            f.write("\n".join(lines))
+        return str(path)
+
+    def export_last(self):
+        try:
+            q = self.question_buffer.text.strip()
+            if not q:
+                self.status_text = "ℹ️  Soru boş; dışa aktarma atlandı"
+                self.app.invalidate()
+                return
+            res = self._request_remote(q) if self.remote_url else retrieve_answer(q)
+            out = self._export_markdown(res)
+            self.status_text = f"💾 Dışa aktarıldı: {out}"
+        except Exception as e:
+            self.status_text = f"❌ Dışa aktarma hatası: {e}"
         self.app.invalidate()
 
     def _format_result(self, result: dict[str, Any]) -> str:
@@ -264,6 +321,25 @@ class FreeHekimCLI:
         lines.append("=" * 80 + "\n")
 
         return "\n".join(lines)
+
+    def _request_remote(self, question: str) -> dict[str, Any]:
+        if not self.remote_url:
+            raise RuntimeError("Remote URL tanımlı değil")
+        if httpx is None:
+            raise RuntimeError("httpx kurulu değil (pip install httpx)")
+        url = self.remote_url.rstrip("/") + "/rag/query"
+        headers = {"Content-Type": "application/json"}
+        if self.api_key:
+            headers["X-Api-Key"] = self.api_key
+        with httpx.Client(timeout=self.timeout) as client:
+            r = client.post(url, headers=headers, json={"q": question})
+            if r.status_code == 200:
+                return r.json()
+            try:
+                data = r.json()
+            except Exception:
+                data = {"error": r.text}
+            raise RuntimeError(f"API {r.status_code}: {data.get('error','bilinmeyen hata')}")
 
     def show_history(self):
         """Show query history"""
@@ -323,6 +399,8 @@ class FreeHekimCLI:
             env=settings.env,
             model="GPT-4",
             embedding=settings.openai_embedding_model,
+            remote_url=self.remote_url or "(kapalı)",
+            api_key_mask=("***" if self.api_key else "(yok)"),
         )
 
         self.result_text = help_text
@@ -448,17 +526,16 @@ def main():
         description="FreeHekim RAG Interactive CLI",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument(
-        "--simple",
-        action="store_true",
-        help="Use simple mode (no TUI)",
-    )
+    parser.add_argument("--simple", action="store_true", help="Use simple mode (no TUI)")
     parser.add_argument(
         "--query",
         "-q",
         type=str,
         help="Single query mode",
     )
+    parser.add_argument("--remote-url", type=str, default=DEFAULT_REMOTE_URL, help="Remote API base URL (e.g., https://rag.example.com)")
+    parser.add_argument("--api-key", type=str, default=DEFAULT_API_KEY, help="X-Api-Key for remote API (optional)")
+    parser.add_argument("--timeout", type=float, default=15.0, help="HTTP timeout (seconds) for remote mode")
 
     args = parser.parse_args()
 
@@ -468,7 +545,19 @@ def main():
             console.print(f"\n[bold]Soru:[/bold] {args.query}")
             console.print("[dim]⏳ Cevap oluşturuluyor...[/dim]\n")
 
-            result = retrieve_answer(args.query)
+            if args.remote_url:
+                if httpx is None:
+                    raise RuntimeError("httpx kurulu değil (pip install httpx)")
+                url = args.remote_url.rstrip("/") + "/rag/query"
+                headers = {"Content-Type": "application/json"}
+                if args.api_key:
+                    headers["X-Api-Key"] = args.api_key
+                with httpx.Client(timeout=args.timeout) as client:
+                    r = client.post(url, headers=headers, json={"q": args.query})
+                    r.raise_for_status()
+                    result = r.json()
+            else:
+                result = retrieve_answer(args.query)
 
             console.print(Markdown(result.get("answer", "")))
 
@@ -477,7 +566,7 @@ def main():
             simple_mode()
         else:
             # Full TUI mode
-            cli = FreeHekimCLI()
+            cli = FreeHekimCLI(remote_url=args.remote_url, api_key=args.api_key, timeout=args.timeout)
             cli.run()
 
     except KeyboardInterrupt:
