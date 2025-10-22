@@ -117,8 +117,10 @@ Modern, production-ready AI backend providing intelligent medical content search
 
 **Automated via GitHub Actions:**
 
-1. **Push to `dev` branch** → Builds & deploys to staging
-2. **Create tag `v*.*.*`** → Builds & deploys to production
+1. **Run `Deploy (manual)` workflow** → Yerel runner’da docker compose pull/up
+2. **Create tag `v*.*.*`** → `Release (on tag)` çalışır, yerel runner’da pull/up
+
+Not: GHCR gerekiyorsa imaj push ekleyin; varsayılan kurulumda workflow, yerelde bulunan `docker-api:latest` imajını `ghcr.io/freehekimteam/freehekim-rag-api:dev` olarak etiketleyip çalıştırır (pull başarısız olsa bile up -d yapılır).
 
 **Manual deployment:**
 ```bash

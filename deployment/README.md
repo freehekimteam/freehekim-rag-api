@@ -242,14 +242,13 @@ docker-compose up -d
 
 ## CI/CD Integration
 
-### GitHub Actions
+### GitHub Actions (self‑hosted runner)
 
-```yaml
-# .github/workflows/deploy.yml
-- name: Deploy to production
-  run: |
-    ssh user@server 'cd /app && ./deployment/scripts/deploy.sh'
-```
+- Bu repo, yerel runner üzerinde çalışan 2 otomatik iş ile gelir:
+  - `Deploy (manual)`: Bir tıkla docker compose pull/up
+  - `Release (on tag)`: `v*.*.*` etiketi push edilince compose pull/up
+- Kurulum: Settings → Actions → Runners → New self‑hosted runner (Linux). Hızlı kurulum için `/tmp/gha-runner`, kalıcı servis için `/opt/actions-runner` kullanabilirsiniz.
+- Çalıştırma: Actions → `Deploy (manual)` → `Run workflow`.
 
 ### GitLab CI
 

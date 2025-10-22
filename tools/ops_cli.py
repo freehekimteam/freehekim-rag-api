@@ -50,6 +50,7 @@ class OpsCLI:
             ("Genel Durum", self.view_overview),
             ("Sağlık Kontrolleri", self.health_checks),
             ("Qdrant Koleksiyonları", self.view_qdrant_collections),
+            ("Qdrant Ayar Önerileri", self.qdrant_tuning_suggestions),
             ("Hızlı RAG Testi", self.quick_rag_test),
             ("Koruma Ayarları (Bilgi)", self.protection_info),
             ("Cache Durumu / Temizle", self.cache_view_flush),
@@ -190,11 +191,58 @@ class OpsCLI:
             client = get_qdrant_client()
             for col in client.get_collections().collections:
                 info = client.get_collection(col.name)
-                self.output_lines.append(
-                    f"- {col.name}: points={info.points_count}, vectors_count={info.vectors_count}"
-                )
+                line = f"- {col.name}: points={info.points_count}, vectors_count={info.vectors_count}"
+                # Try to show HNSW search params if available
+                ef_construct = ef_search = m_degree = None
+                try:
+                    hnsw = getattr(getattr(info, 'config', None), 'params', None)
+                    if hnsw is not None:
+                        hnsw = getattr(hnsw, 'hnsw_config', None)
+                    if hnsw is None:
+                        hnsw = getattr(getattr(info, 'config', None), 'hnsw_config', None)
+                    ef_construct = getattr(hnsw, 'ef_construct', None)
+                    ef_search = getattr(hnsw, 'ef_search', None)
+                    m_degree = getattr(hnsw, 'm', None)
+                except Exception:
+                    pass
+                if any(x is not None for x in (ef_construct, ef_search, m_degree)):
+                    line += f" | hnsw(ef_search={ef_search}, ef_construct={ef_construct}, m={m_degree})"
+                self.output_lines.append(line)
         except Exception as e:
             self.print_err(f"Listeleme hatası: {e}")
+
+    def qdrant_tuning_suggestions(self) -> None:
+        """Show basic ef_search tuning suggestions (bilgi amaçlı)."""
+        self.clear_output()
+        self.output_lines.append("QDRANT AYAR ÖNERİLERİ (BİLGİ)")
+        self.output_lines.append("-" * 60)
+        try:
+            client = get_qdrant_client()
+            cols = client.get_collections().collections
+            for col in cols:
+                info = client.get_collection(col.name)
+                points = getattr(info, 'points_count', 0) or 0
+                import math
+                suggested = int(min(512, max(64, 2 * math.sqrt(max(1, points)))))
+                ef_search = None
+                try:
+                    hnsw = getattr(getattr(info, 'config', None), 'params', None)
+                    if hnsw is not None:
+                        hnsw = getattr(hnsw, 'hnsw_config', None)
+                    if hnsw is None:
+                        hnsw = getattr(getattr(info, 'config', None), 'hnsw_config', None)
+                    ef_search = getattr(hnsw, 'ef_search', None)
+                except Exception:
+                    pass
+                self.output_lines.append(
+                    f"- {col.name}: points={points} | mevcut ef_search={ef_search} | öneri≈{suggested}"
+                )
+            self.output_lines.append("")
+            self.output_lines.append(
+                "Not: Bu değerler genel amaçlıdır. p95 gecikme ve doğruluğu grafikten izleyerek kademeli ayarlayın."
+            )
+        except Exception as e:
+            self.print_err(f"Öneri hesaplanamadı: {e}")
 
     def quick_rag_test(self) -> None:
         from prompt_toolkit.shortcuts import input_dialog

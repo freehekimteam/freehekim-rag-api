@@ -6,6 +6,7 @@ on:
 
 permissions:
   contents: read
+  packages: write
 
 concurrency:
   group: deploy-prod
@@ -44,3 +45,14 @@ jobs:
           set -x
           docker compose -f deployment/docker/docker-compose.server.yml pull || true
           docker compose -f deployment/docker/docker-compose.server.yml up -d
+      - name: GHCR Login (using GITHUB_TOKEN)
+        run: echo "${{ github.token }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Build & Push image to GHCR
+        run: |
+          set -e
+          IMAGE="ghcr.io/${{ github.repository }}/freehekim-rag-api:${GITHUB_REF_NAME}"
+          IMAGE_DEV="ghcr.io/${{ github.repository }}/freehekim-rag-api:dev"
+          docker build -f deployment/docker/Dockerfile.api -t "$IMAGE" -t "$IMAGE_DEV" .
+          docker push "$IMAGE"
+          docker push "$IMAGE_DEV"
