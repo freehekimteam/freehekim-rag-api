@@ -18,6 +18,21 @@ make run
 - Her isteğe `X-Request-ID` eklenir
 - Süreler ms cinsinden loglanır
 
+### Docker Log Rotation (Production)
+Log dosyalarının büyümesini önlemek için Docker log rotation kurulumu:
+
+```bash
+cd ~/freehekim-rag-api/deployment/docker
+sudo bash setup-log-rotation.sh
+```
+
+Ayarlar: Max 10MB/dosya, 3 dosya, kompresyon etkin.
+
+**Kontrol:**
+```bash
+docker inspect --format='{{.HostConfig.LogConfig}}' docker-api-1
+```
+
 ## Korumalar
 - Oran limiti (IP başına/dk): `RATE_LIMIT_PER_MINUTE`
 - Gövde limiti (byte): `MAX_BODY_SIZE_BYTES`

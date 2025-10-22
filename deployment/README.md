@@ -14,14 +14,15 @@ deployment/
 
 ## Quick Deploy
 
-### 1. Setup Environment
+### 1. Setup Environment (single .env at repo root)
 
 ```bash
-# Copy example env file
+# Copy example env file to repo root and edit
 cp .env.example .env
-
-# Edit with your credentials
 vim .env
+
+# Optional: migrate from legacy ~/.hakancloud/.env
+bash tools/migrate_env.sh
 ```
 
 ### 2. Deploy with Docker Compose

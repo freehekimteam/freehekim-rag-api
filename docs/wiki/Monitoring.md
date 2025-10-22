@@ -4,6 +4,26 @@
 - Scrape: API → `/metrics`, Qdrant → `/metrics`
 - Örnek config: `deployment/monitoring/prometheus.yml`
 
+## Alert Kuralları
+Alert kuralları otomatik olarak yüklenir: `deployment/monitoring/alerts/rag-api-alerts.yml`
+
+**Mevcut Alertler:**
+- `RagApiDown` (critical): API 2 dakikadan fazla down
+- `HighErrorRate` (critical): 5xx hata oranı >5% (5dk)
+- `HighResponseTime` (warning): P95 gecikme >2s (5dk)
+- `HighMemoryUsage` (warning): RAM kullanımı >80%
+- `HighCPUUsage` (warning): CPU kullanımı >80% (2dk)
+- `QdrantDown` (critical): Qdrant 2 dakikadan fazla down
+
+**Alert Kontrolü:**
+```bash
+# Alert kurallarını görüntüle
+curl http://localhost:9090/api/v1/rules
+
+# Aktif alertleri kontrol et
+curl http://localhost:9090/api/v1/alerts
+```
+
 ## Grafana
 - Datasource: Prometheus (deployment/monitoring/grafana-datasources.yml)
 - Dashboard import:

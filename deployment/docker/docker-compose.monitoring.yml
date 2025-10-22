@@ -8,7 +8,8 @@ services:
     user: "nobody"
     volumes:
       - /home/freehekim/data/prometheus:/prometheus
-      - /home/freehekim/apps/hakancloud-ops/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ../../deployment/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ../../deployment/monitoring/alerts:/etc/prometheus/alerts
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
@@ -29,7 +30,8 @@ services:
     user: "472:472"  # Default Grafana UID/GID
     volumes:
       - /home/freehekim/data/grafana:/var/lib/grafana
-      - /home/freehekim/apps/hakancloud-ops/monitoring/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
+      - ../../deployment/monitoring/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
+      - ../../deployment/monitoring/grafana-dashboards:/etc/grafana/provisioning/dashboards
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-hakancloud2025}

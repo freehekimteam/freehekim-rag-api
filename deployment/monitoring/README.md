@@ -2,20 +2,11 @@
 
 This directory contains Prometheus and Grafana configuration files for FreeHekim RAG API monitoring.
 
+**✅ All configs are in the repo** - No manual copying needed!
+
 ## Deployment Instructions
 
-### 1. Copy configs to server
-
-```bash
-# On your server
-mkdir -p ~/apps/hakancloud-ops/monitoring
-
-# Copy configs
-scp monitoring/prometheus.yml server:~/apps/hakancloud-ops/monitoring/
-scp monitoring/grafana-datasources.yml server:~/apps/hakancloud-ops/monitoring/
-```
-
-### 2. Create data directories
+### 1. Create data directories (first time only)
 
 ```bash
 # On server
@@ -25,32 +16,40 @@ mkdir -p ~/data/prometheus ~/data/grafana
 sudo chown -R 472:472 ~/data/grafana
 ```
 
-### 3. Start monitoring stack
+### 2. Start monitoring stack
 
 ```bash
-cd ~/hakancloud-core
+cd ~/freehekim-rag-api
 
-# Start with monitoring
-docker compose -f docker/docker-compose.server.yml \
-               -f docker/docker-compose.monitoring.yml up -d
+# Start API + Monitoring together
+docker compose -f deployment/docker/docker-compose.server.yml \
+               -f deployment/docker/docker-compose.monitoring.yml up -d
+
+# Or restart if already running
+docker compose -f deployment/docker/docker-compose.server.yml \
+               -f deployment/docker/docker-compose.monitoring.yml restart prometheus grafana
 ```
 
-### 4. Access dashboards
+### 3. Access dashboards
 
-- **Prometheus:** http://localhost:9090 (port-forward if remote)
+- **Prometheus:** http://localhost:9090
 - **Grafana:** http://localhost:3000
   - Default credentials: `admin` / `hakancloud2025`
   - Change password on first login
 
-### 5. Import dashboards
+**Note:** Datasource is auto-configured via `grafana-datasources.yml`
 
-Grafana içinde:
-1. Dashboards → Import
-2. `Upload JSON file` seçin
-3. Aşağıdaki dosyaları yükleyin:
-   - `grafana-dashboards/rag-overview.json`
-   - `grafana-dashboards/qdrant-overview.json`
-4. Datasource olarak `Prometheus` seçin
+### 4. Check alert rules
+
+```bash
+# View loaded alerts
+curl http://localhost:9090/api/v1/rules
+
+# Check alert status
+curl http://localhost:9090/api/v1/alerts
+```
+
+Alerts are defined in `alerts/rag-api-alerts.yml` and automatically loaded.
 
 ## Available Metrics
 

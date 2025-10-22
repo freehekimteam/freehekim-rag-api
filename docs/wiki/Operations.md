@@ -16,6 +16,22 @@ docker compose -f deployment/docker/docker-compose.server.yml up -d
 ## Loglama
 - Her isteğe `X-Request-ID` eklenir, süreler ms cinsinden loglanır
 
+### Docker Log Rotation
+Log dosyalarının büyümesini önlemek için otomatik rotasyon yapılandırılmıştır.
+
+**Kurulum:**
+```bash
+cd ~/freehekim-rag-api/deployment/docker
+sudo bash setup-log-rotation.sh
+```
+
+**Ayarlar:**
+- Max boyut: 10MB
+- Max dosya: 3
+- Kompresyon: etkin
+
+**Not:** Script Docker daemon'u yeniden başlatır. Yedek alır ve hata durumunda geri yükler.
+
 ## Korumalar
 - Oran limiti: `RATE_LIMIT_PER_MINUTE`
 - Gövde limiti: `MAX_BODY_SIZE_BYTES`

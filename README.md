@@ -75,10 +75,11 @@ Modern, production-ready AI backend providing intelligent medical content search
    cd freehekim-rag-api
    ```
 
-2. **Setup environment:**
+2. **Setup environment (single .env at repo root):**
    ```bash
    cp .env.example .env
-   # Edit .env with your credentials
+   # Eski kurulumdan ~/.hakancloud/.env varsa, kopyalamak için:
+   bash tools/migrate_env.sh
    ```
 
 3. **Install dependencies:**
