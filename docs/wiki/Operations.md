@@ -52,6 +52,17 @@ python3 tools/qdrant_reset.py --yes
 ```
 Not: Bu işlem koleksiyonları siler ve yeniden oluşturur. Boyut `.env`’deki embedding modelinden otomatik alınır.
 
+## Cloudflare Health Checks (Önerilir)
+- Panel: Zero Trust → Network → Tunnels → (tüneliniz) → Health Checks veya Application Policies.
+- Hedef URL: `https://rag.hakancloud.com/health`
+- Beklenen durum: `200`
+- Aralık: 60 sn (kritik sistemler için 30 sn)
+- Eşikler: 3 ardışık başarısızlık = down, 2 ardışık başarı = up
+- Bölge: En az 2–3 bölge seçin
+- Alarm: E‑posta veya webhook entegrasyonu ekleyin
+
+Not: /ready endpoint’i Qdrant’a bağlıdır; health checks için `/health` kullanın.
+
 ## Yedekleme (Kullanıcı Alanında – Cronless)
 - Root gerektirmeden Qdrant verisinin günlük yedeği alınır (Docker ile):
   - Script: `deployment/scripts/backup_qdrant_user.sh`
