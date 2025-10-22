@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ dev ]
+    branches: [ dev, main ]
   pull_request:
-    branches: [ dev ]
+    branches: [ dev, main ]
 
 permissions:
   contents: read
@@ -34,4 +34,3 @@ jobs:
         env:
           OPENAI_API_KEY: sk-ci-dummy
         run: pytest -v tests/ || true
-

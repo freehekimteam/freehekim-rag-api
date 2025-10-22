@@ -90,3 +90,8 @@ secrets/
 credentials.json
 *.key
 *.crt
+
+# Local wiki publish artifacts
+/.wiki-publish/
+# CLI export files
+docs/cli-exports/
