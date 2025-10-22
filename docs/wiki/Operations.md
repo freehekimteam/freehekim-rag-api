@@ -51,3 +51,22 @@ cd ~/freehekim-rag-api
 python3 tools/qdrant_reset.py --yes
 ```
 Not: Bu işlem koleksiyonları siler ve yeniden oluşturur. Boyut `.env`’deki embedding modelinden otomatik alınır.
+
+## Yedekleme (Kullanıcı Alanında – Cronless)
+- Root gerektirmeden Qdrant verisinin günlük yedeği alınır (Docker ile):
+  - Script: `deployment/scripts/backup_qdrant_user.sh`
+  - Zamanlayıcı: systemd user timer
+
+### Zamanlayıcıyı kontrol et
+```bash
+systemctl --user list-timers | grep freehekim-qdrant-backup
+```
+
+### Manuel çalıştırma
+```bash
+systemctl --user start freehekim-qdrant-backup.service
+```
+
+Yedekler: `~/backups/qdrant/qdrant-YYYYmmdd-HHMM.tgz` (7 gün saklama)
+
+Not: Kullanıcı oturumu kapalıyken de çalışması için (opsiyonel) `loginctl enable-linger freehekim` komutu root ile verilebilir.

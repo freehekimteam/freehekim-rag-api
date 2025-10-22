@@ -2,7 +2,7 @@ services:
   api:
     image: ghcr.io/freehekimteam/freehekim-rag-api:${IMAGE_TAG:-dev}
     restart: unless-stopped
-    env_file: ../../.env
+    env_file: ${ENV_FILE:-/home/freehekim/.config/freehekim-rag/.env}
     ports:
       - "127.0.0.1:8080:8080"
     depends_on:
@@ -28,7 +28,7 @@ services:
   qdrant:
     image: qdrant/qdrant:latest
     restart: unless-stopped
-    env_file: ../../.env
+    env_file: ${ENV_FILE:-/home/freehekim/.config/freehekim-rag/.env}
     volumes:
       - /var/lib/qdrant_data:/qdrant/storage
     ports:

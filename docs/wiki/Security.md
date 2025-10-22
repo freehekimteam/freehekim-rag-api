@@ -5,6 +5,7 @@
 
 ## Ağ Mimarisı
 - Sunucuda servisler 127.0.0.1’e bind edilir; dış dünyaya Cloudflare Tunnel ile çıkılır.
+ - Üretimde `REQUIRE_API_KEY=true` + güçlü `API_KEY` önerilir (Access’e ek koruma)
 
 ## Sırlar
 - `.env` ile yönetilir; saklama süreleri ve rotasyon politikası uygulanır.

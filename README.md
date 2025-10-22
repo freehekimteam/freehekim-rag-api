@@ -179,7 +179,19 @@ curl -X POST https://rag.hakancloud.com/rag/query \
 
 ## Configuration
 
-See `.env.example` for all available options:
+See `.env.example` for all available options.
+
+Server (prod) uses a dedicated env file path and compose reads it directly:
+
+```bash
+# Server
+ENV_FILE=/home/freehekim/.config/freehekim-rag/.env
+
+# Compose fallbacks to this path if ENV_FILE is not set:
+# env_file: ${ENV_FILE:-/home/freehekim/.config/freehekim-rag/.env}
+```
+
+Security recommendation: enforce API key on production (`REQUIRE_API_KEY=true`) and set a strong `API_KEY`. Cloudflare Access remains enabled.
 
 | Variable | Description | Default |
 |----------|-------------|---------|
@@ -200,6 +212,8 @@ See `.env.example` for all available options:
 | `PIPELINE_MAX_SOURCE_TEXT_LENGTH` | Source preview length (chars) | `200` |
 | `RATE_LIMIT_PER_MINUTE` | Requests per IP per minute | `60` |
 | `MAX_BODY_SIZE_BYTES` | Max request body size | `1048576` |
+| `REQUIRE_API_KEY` | Require `X-Api-Key` header | `false` |
+| `API_KEY` | API key value (if required) | - |
 
 ## Testing
 

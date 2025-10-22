@@ -2,6 +2,18 @@
 
 Tüm ayarlar `.env` ile yönetilir. Örnekler için `.env.example` dosyasını inceleyin.
 
+Sunucuda sade ve güvenli kurulum için env dosyası kullanıcı dizininde tutulur ve docker-compose bu yolu doğrudan okur:
+
+```bash
+# Sunucu (prod)
+ENV_FILE=/home/freehekim/.config/freehekim-rag/.env
+
+# Compose dosyası fallback olarak bu yolu kullanır:
+# env_file: ${ENV_FILE:-/home/freehekim/.config/freehekim-rag/.env}
+```
+
+Yerel geliştirme için repo kökünde `.env` kullanmaya devam edebilirsiniz (ENV_FILE tanımlanmadıysa dev’deki yol devreye girer).
+
 ## Temel Değişkenler
 - `ENV`: `staging` | `production` | `development` (varsayılan: staging)
 - `API_HOST`, `API_PORT`: API servis bind adresi (varsayılan: 0.0.0.0:8080)
@@ -31,8 +43,8 @@ Tüm ayarlar `.env` ile yönetilir. Örnekler için `.env.example` dosyasını i
 ## Korumalar
 - `RATE_LIMIT_PER_MINUTE`
 - `MAX_BODY_SIZE_BYTES`
-- `REQUIRE_API_KEY` (true/false)
-- `API_KEY` (X-Api-Key header değeri)
+- `REQUIRE_API_KEY` (true/false) — üretimde önerilir
+- `API_KEY` (X-Api-Key header değeri) — üretimde zorunlu tutulabilir
 
 ## Önbellek
 - `ENABLE_CACHE` (true/false)
@@ -60,4 +72,3 @@ CACHE_TTL_SECONDS=300
 REQUIRE_API_KEY=false
 # API_KEY=your_api_key_here
 ```
-
