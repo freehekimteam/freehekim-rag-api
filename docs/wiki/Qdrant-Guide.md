@@ -3,6 +3,7 @@
 ## Koleksiyonlar
 - İçerik boyutu: 1536 (text-embedding-3-small)
 - İç: `freehekim_internal`, Dış: `freehekim_external`
+ - Sürüm: Qdrant 1.15.5 (docker tag: v1.15.5)
 
 ## Sıfırla / Şema (Reset)
 

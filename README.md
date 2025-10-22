@@ -51,7 +51,7 @@ Modern, production-ready AI backend providing intelligent medical content search
 | Component | Technology |
 |-----------|------------|
 | API Framework | FastAPI 0.115+ |
-| Vector Database | Qdrant (latest) |
+| Vector Database | Qdrant 1.15.5 |
 | Embeddings | OpenAI text-embedding-3-small (1536 dim) |
 | LLM | GPT-4 |
 | Monitoring | Prometheus + Grafana |
