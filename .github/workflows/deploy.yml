@@ -28,6 +28,20 @@ jobs:
           groups || true
           docker ps || true
 
+      - name: Ensure local API image tag exists
+        run: |
+          set -e
+          IMAGE_LOCAL="docker-api:latest"
+          IMAGE_TARGET="ghcr.io/freehekimteam/freehekim-rag-api:dev"
+          if ! docker image inspect "$IMAGE_TARGET" >/dev/null 2>&1; then
+            if docker image inspect "$IMAGE_LOCAL" >/dev/null 2>&1; then
+              echo "Tagging $IMAGE_LOCAL -> $IMAGE_TARGET"
+              docker tag "$IMAGE_LOCAL" "$IMAGE_TARGET"
+            else
+              echo "Local image $IMAGE_LOCAL not found; relying on registry pull (may fail if private)"
+            fi
+          fi
+
       - name: Docker Compose Up
         run: |
           set -x
