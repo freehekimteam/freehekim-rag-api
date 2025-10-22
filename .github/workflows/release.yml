@@ -51,8 +51,8 @@ jobs:
       - name: Build & Push image to GHCR
         run: |
           set -e
-          IMAGE="ghcr.io/${{ github.repository }}/freehekim-rag-api:${GITHUB_REF_NAME}"
-          IMAGE_DEV="ghcr.io/${{ github.repository }}/freehekim-rag-api:dev"
+          IMAGE="ghcr.io/${{ github.repository }}:${GITHUB_REF_NAME}"
+          IMAGE_DEV="ghcr.io/${{ github.repository }}:dev"
           docker build -f deployment/docker/Dockerfile.api -t "$IMAGE" -t "$IMAGE_DEV" .
           docker push "$IMAGE"
           docker push "$IMAGE_DEV"
