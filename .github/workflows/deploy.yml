@@ -31,5 +31,6 @@ jobs:
       - name: Docker Compose Up
         run: |
           set -x
-          docker compose -f deployment/docker/docker-compose.server.yml pull
+          # Pull images if registry is accessible; ignore failures for local-only use
+          docker compose -f deployment/docker/docker-compose.server.yml pull || true
           docker compose -f deployment/docker/docker-compose.server.yml up -d
