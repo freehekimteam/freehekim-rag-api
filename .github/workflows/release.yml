@@ -17,9 +17,15 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          clean: true
+
+      - name: Sanity cleanup (legacy wiki dir)
+        run: |
+          rm -rf .wiki-publish || true
 
       - name: Docker Compose Up
         run: |
           docker compose -f deployment/docker/docker-compose.server.yml pull
           docker compose -f deployment/docker/docker-compose.server.yml up -d
-
