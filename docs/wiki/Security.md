@@ -15,4 +15,4 @@
 - Tek tip hata cevabı: İç detay sızdırmayı engeller
 - İstek kimliği: `X-Request-ID` header’ı
 - Opsiyonel API Key: `REQUIRE_API_KEY`/`API_KEY` ve `X-Api-Key` başlığı
-
+- Gerçek istemci IP’si: Cloudflare ortamında `CF-Connecting-IP` önceliklidir; aksi halde ilk `X-Forwarded-For` kullanılır.

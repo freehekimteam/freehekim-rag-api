@@ -174,6 +174,11 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self.state: dict[str, deque] = defaultdict(deque)
 
     def _client_ip(self, request: Request) -> str:
+        # Prefer Cloudflare's connecting IP if present
+        cf_ip = request.headers.get("cf-connecting-ip")
+        if cf_ip:
+            return cf_ip.strip()
+        # Fallback to first X-Forwarded-For entry
         fwd = request.headers.get("x-forwarded-for")
         if fwd:
             return fwd.split(",")[0].strip()

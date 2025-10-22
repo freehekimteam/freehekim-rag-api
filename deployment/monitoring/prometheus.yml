@@ -8,11 +8,11 @@ global:
     cluster: 'hakancloud'
     env: 'production'
 
-# Alerting configuration (optional)
-# alerting:
-#   alertmanagers:
-#     - static_configs:
-#         - targets: ['localhost:9093']
+# Alerting configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['alertmanager:9093']
 
 # Load rules once and periodically evaluate them
 rule_files:

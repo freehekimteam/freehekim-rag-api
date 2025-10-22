@@ -7,7 +7,7 @@ groups:
     rules:
       # API Health Check
       - alert: RagApiDown
-        expr: up{job="rag-api"} == 0
+        expr: up{job="hakancloud-api"} == 0
         for: 2m
         labels:
           severity: critical
@@ -38,27 +38,27 @@ groups:
           summary: "High API response time"
           description: "95th percentile response time is {{ $value }}s"
 
-      # High Memory Usage
-      - alert: HighMemoryUsage
-        expr: container_memory_usage_bytes{name="docker-api-1"} / container_spec_memory_limit_bytes{name="docker-api-1"} > 0.9
-        for: 5m
-        labels:
-          severity: warning
-          component: api
-        annotations:
-          summary: "High memory usage in API container"
-          description: "Memory usage is at {{ $value | humanizePercentage }}"
+      # NOTE: Container CPU/Memory alerts require cAdvisor/Node Exporter metrics.
+      # They are commented out by default in this stack.
+      # - alert: HighMemoryUsage
+      #   expr: container_memory_usage_bytes{name="docker-api-1"} / container_spec_memory_limit_bytes{name="docker-api-1"} > 0.9
+      #   for: 5m
+      #   labels:
+      #     severity: warning
+      #     component: api
+      #   annotations:
+      #     summary: "High memory usage in API container"
+      #     description: "Memory usage is at {{ $value | humanizePercentage }}"
 
-      # High CPU Usage
-      - alert: HighCPUUsage
-        expr: rate(container_cpu_usage_seconds_total{name="docker-api-1"}[5m]) > 1.8
-        for: 10m
-        labels:
-          severity: warning
-          component: api
-        annotations:
-          summary: "High CPU usage in API container"
-          description: "CPU usage is {{ $value }} cores"
+      # - alert: HighCPUUsage
+      #   expr: rate(container_cpu_usage_seconds_total{name="docker-api-1"}[5m]) > 1.8
+      #   for: 10m
+      #   labels:
+      #     severity: warning
+      #     component: api
+      #   annotations:
+      #     summary: "High CPU usage in API container"
+      #     description: "CPU usage is {{ $value }} cores"
 
   - name: qdrant_alerts
     interval: 30s

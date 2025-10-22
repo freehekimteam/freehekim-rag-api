@@ -5,6 +5,7 @@ Application settings loaded from environment variables with validation.
 Supports both .env files and environment variables.
 """
 
+import os
 from typing import Literal
 
 from pydantic import Field, SecretStr, field_validator
@@ -168,8 +169,11 @@ class Settings(BaseSettings):
     )
 
     # Model configuration
+    # Allow disabling .env loading in certain contexts (e.g., tests)
+    _env_file = None if os.getenv("FREEHEKIM_IGNORE_ENV_FILE", "").lower() in {"1", "true", "yes"} else ".env"
+
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=_env_file,
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore"  # Ignore extra environment variables

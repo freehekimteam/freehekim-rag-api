@@ -16,12 +16,12 @@ mkdir -p ~/data/prometheus ~/data/grafana
 sudo chown -R 472:472 ~/data/grafana
 ```
 
-### 2. Start monitoring stack
+### 2. Start monitoring stack (with Alertmanager)
 
 ```bash
 cd ~/freehekim-rag-api
 
-# Start API + Monitoring together
+# Start API + Monitoring together (Prometheus, Grafana, Alertmanager)
 docker compose -f deployment/docker/docker-compose.server.yml \
                -f deployment/docker/docker-compose.monitoring.yml up -d
 
@@ -39,7 +39,7 @@ docker compose -f deployment/docker/docker-compose.server.yml \
 
 **Note:** Datasource is auto-configured via `grafana-datasources.yml`
 
-### 4. Check alert rules
+### 4. Check alert rules & alerts
 
 ```bash
 # View loaded alerts
@@ -47,6 +47,9 @@ curl http://localhost:9090/api/v1/rules
 
 # Check alert status
 curl http://localhost:9090/api/v1/alerts
+
+Alert delivery: Default Alertmanager config is provided at `deployment/monitoring/alertmanager.yml`.
+To send real notifications, add a receiver (Slack, webhook, etc.) and reload container.
 ```
 
 Alerts are defined in `alerts/rag-api-alerts.yml` and automatically loaded.

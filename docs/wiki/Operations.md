@@ -44,3 +44,10 @@ python3 tools/ops_cli.py
 - Menü: Genel Durum, Sağlık, Qdrant Koleksiyonları, Hızlı RAG Testi, Koruma Bilgisi, Cache, Profil Önerileri (.env)
 - Öneri dosyaları: `docs/env-suggestions/`
 
+## Qdrant Bakım
+- Koleksiyonları sıfırla ve doğru vektör boyutunu uygula:
+```bash
+cd ~/freehekim-rag-api
+python3 tools/qdrant_reset.py --yes
+```
+Not: Bu işlem koleksiyonları siler ve yeniden oluşturur. Boyut `.env`’deki embedding modelinden otomatik alınır.

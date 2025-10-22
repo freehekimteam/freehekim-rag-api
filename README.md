@@ -239,6 +239,21 @@ Custom RAG metrics exposed:
 - `rag_errors_total{type}` (Counter): error counts by type (embedding/database/rag/unexpected)
  - `rag_tokens_total{model}` (Counter): total OpenAI tokens used
 
+## Qdrant Maintenance
+
+- Reset test data and enforce correct vector dimensions (defaults to embedding model size):
+
+```bash
+cd ~/freehekim-rag-api
+python3 tools/qdrant_reset.py --yes
+# Custom options
+# python3 tools/qdrant_reset.py --collections freehekim_internal,freehekim_external --dimension 1536 --distance cosine -y
+```
+
+Notes:
+- Collections are deleted and recreated with the specified dimension and distance.
+- Dimension is inferred automatically from `.env` (e.g., text-embedding-3-small = 1536).
+
 **Grafana dashboards:**
 ```bash
 # Start monitoring stack
