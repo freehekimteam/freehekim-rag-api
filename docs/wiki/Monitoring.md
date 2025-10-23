@@ -76,3 +76,13 @@ ALERT_TELEGRAM_CHAT_ID=123456
 ```bash
 systemctl --user list-timers | grep freehekim-health-monitor
 ```
+
+### İleri Özellikler
+- Art arda N hata → uyarı (false‑positive filtresi):
+  - `MONITOR_CONSECUTIVE_FAILS=3` (varsayılan 3)
+- Sessiz saatler (gece uyarılarını bastırma):
+  - `MONITOR_QUIET_START=23:00`
+  - `MONITOR_QUIET_END=07:00`
+  - `MONITOR_SUPPRESS_ALERTS_DURING_QUIET=true` (varsayılan true)
+- Kurtarma bildirimi:
+  - `MONITOR_SEND_RECOVERY=true` (varsayılan true)

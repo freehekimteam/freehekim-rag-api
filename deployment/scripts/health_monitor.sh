@@ -4,6 +4,8 @@ set -euo pipefail
 # Lightweight health monitor for FreeHekim RAG
 # - Checks external health (via Cloudflare) and local readiness
 # - Sends alert to Slack or Telegram on failure
+# - False-positive filter with consecutive failures threshold
+# - Quiet hours support (suppress alerts during a time window)
 # - Designed to be run by systemd --user timer
 
 # Configuration via env (loaded from ~/.config/freehekim-rag/.env by default)
@@ -20,6 +22,15 @@ MONITOR_EXPECT_HEALTH="${MONITOR_EXPECT_HEALTH:-200}"
 MONITOR_EXPECT_READY="${MONITOR_EXPECT_READY:-200}"
 MONITOR_TIMEOUT="${MONITOR_TIMEOUT:-8}"
 
+# False-positive filter / quiet hours
+MONITOR_CONSECUTIVE_FAILS="${MONITOR_CONSECUTIVE_FAILS:-3}"
+MONITOR_STATE_DIR="${MONITOR_STATE_DIR:-$HOME/.local/state/freehekim}"
+MONITOR_STATE_FILE="$MONITOR_STATE_DIR/rag_monitor.state"
+MONITOR_SEND_RECOVERY="${MONITOR_SEND_RECOVERY:-true}"
+MONITOR_QUIET_START="${MONITOR_QUIET_START:-}"
+MONITOR_QUIET_END="${MONITOR_QUIET_END:-}"
+MONITOR_SUPPRESS_ALERTS_DURING_QUIET="${MONITOR_SUPPRESS_ALERTS_DURING_QUIET:-true}"
+
 ALERT_SLACK_WEBHOOK="${ALERT_SLACK_WEBHOOK:-}"
 ALERT_TG_TOKEN="${ALERT_TELEGRAM_BOT_TOKEN:-}"
 ALERT_TG_CHAT="${ALERT_TELEGRAM_CHAT_ID:-}"
@@ -30,8 +41,11 @@ notify() {
   local msg="$1"
   # Slack
   if [ -n "$ALERT_SLACK_WEBHOOK" ]; then
+    # Minimal JSON escaping for Slack
+    local esc
+    esc=$(printf '%s' "$msg" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g')
     curl -fsS -m 5 -H 'Content-Type: application/json' \
-      -d "{\"text\": $(jq -Rs . <<<"$msg") }" \
+      -d "{\"text\": \"$esc\"}" \
       "$ALERT_SLACK_WEBHOOK" >/dev/null 2>&1 || true
   fi
   # Telegram
@@ -58,12 +72,65 @@ if [ "$c_ready" != "$MONITOR_EXPECT_READY" ]; then
   fail=1
 fi
 
-if [ "$fail" -ne 0 ]; then
-  host=$(hostname -s 2>/dev/null || echo server)
-  msg="[$(ts)] RAG monitor ALERT on $host: health=$c_health (expect $MONITOR_EXPECT_HEALTH), ready=$c_ready (expect $MONITOR_EXPECT_READY)"
-  notify "$msg"
-  echo "$msg"
-else
-  echo "[$(ts)] RAG monitor OK: health=$c_health, ready=$c_ready"
-fi
+# Ensure state dir exists
+mkdir -p "$MONITOR_STATE_DIR"
+[ -f "$MONITOR_STATE_FILE" ] || echo "fails=0
+was_down=0" > "$MONITOR_STATE_FILE"
 
+# shellcheck disable=SC1090
+. "$MONITOR_STATE_FILE"
+
+# Quiet hours helper
+in_quiet_hours() {
+  [ -z "$MONITOR_QUIET_START" ] || [ -z "$MONITOR_QUIET_END" ] && return 1
+  # HH:MM to minutes
+  sm=${MONITOR_QUIET_START%:*}; ss=${MONITOR_QUIET_START#*:}
+  em=${MONITOR_QUIET_END%:*}; es=${MONITOR_QUIET_END#*:}
+  start=$((10#$sm*60 + 10#$ss))
+  end=$((10#$em*60 + 10#$es))
+  now_h=$(date +%H); now_m=$(date +%M); now=$((10#$now_h*60 + 10#$now_m))
+  if [ $start -lt $end ]; then
+    [ $now -ge $start ] && [ $now -lt $end ]
+  else
+    # window crosses midnight
+    [ $now -ge $start ] || [ $now -lt $end ]
+  fi
+}
+
+host=$(hostname -s 2>/dev/null || echo server)
+
+if [ "$fail" -ne 0 ]; then
+  fails=$((fails + 1))
+  was_down=1
+  echo "fails=$fails
+was_down=$was_down" > "$MONITOR_STATE_FILE"
+  # Decide to alert only if threshold reached and not suppressed by quiet hours
+  if [ "$fails" -ge "$MONITOR_CONSECUTIVE_FAILS" ]; then
+    if in_quiet_hours && [ "$MONITOR_SUPPRESS_ALERTS_DURING_QUIET" = "true" ]; then
+      echo "[$(ts)] RAG monitor FAIL (suppressed due to quiet hours): health=$c_health, ready=$c_ready (streak=$fails)"
+    else
+      msg="[$(ts)] RAG monitor ALERT on $host: health=$c_health (expect $MONITOR_EXPECT_HEALTH), ready=$c_ready (expect $MONITOR_EXPECT_READY), streak=$fails"
+      notify "$msg"
+      echo "$msg"
+      # After first alert, keep counting but avoid spamming on every run (alert only at threshold multiples)
+    fi
+  else
+    echo "[$(ts)] RAG monitor FAIL (no alert yet): health=$c_health, ready=$c_ready (streak=$fails/<$MONITOR_CONSECUTIVE_FAILS)"
+  fi
+else
+  # If recovering from a down state, optionally notify
+  if [ "${was_down:-0}" = "1" ] && [ "$MONITOR_SEND_RECOVERY" = "true" ]; then
+    if in_quiet_hours && [ "$MONITOR_SUPPRESS_ALERTS_DURING_QUIET" = "true" ]; then
+      echo "[$(ts)] RAG monitor RECOVERY (suppressed due to quiet hours): health=$c_health, ready=$c_ready"
+    else
+      msg="[$(ts)] RAG monitor RECOVERY on $host: health=$c_health, ready=$c_ready"
+      notify "$msg"
+      echo "$msg"
+    fi
+  else
+    echo "[$(ts)] RAG monitor OK: health=$c_health, ready=$c_ready"
+  fi
+  # reset counters
+  echo "fails=0
+was_down=0" > "$MONITOR_STATE_FILE"
+fi

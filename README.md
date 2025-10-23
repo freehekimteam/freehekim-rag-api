@@ -270,6 +270,21 @@ Lightweight self-monitor (no 3rd‑party):
 systemctl --user list-timers | grep freehekim-health-monitor || true
 ```
 
+Advanced options (set in `~/.config/freehekim-rag/.env`):
+
+```
+# Alert only after N consecutive failures (default 3)
+MONITOR_CONSECUTIVE_FAILS=3
+
+# Quiet hours (suppress alerts between start–end, local time)
+MONITOR_QUIET_START=23:00
+MONITOR_QUIET_END=07:00
+MONITOR_SUPPRESS_ALERTS_DURING_QUIET=true
+
+# Send recovery notification when service becomes healthy again
+MONITOR_SEND_RECOVERY=true
+```
+
 Metrics exposed by the API:
 - Request count & latency
 - Error rates
