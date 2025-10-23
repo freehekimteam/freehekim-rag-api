@@ -59,3 +59,20 @@ curl http://localhost:9090/api/v1/alerts
 - İstek hızı: `rate(http_requests_total[1m])`
 - API gecikme p95: `histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket[5m])))`
 - RAG toplam p95: `histogram_quantile(0.95, sum by (le) (rate(rag_total_seconds_bucket[5m])))`
+## Hafif İzleme (Workers/cron veya Systemd user)
+
+- Bu VPS’te üçüncü parti olmadan hafif kontrol kullanılıyor: `deployment/scripts/health_monitor.sh` + systemd `--user` timer.
+- Varsayılan olarak 2 dakikada bir `https://rag.hakancloud.com/health` ve `http://127.0.0.1:8080/ready` kontrol edilir.
+- Slack/Telegram uyarıları için sunucu kullanıcı env dosyasına aşağıyı ekleyin:
+
+```env
+ALERT_SLACK_WEBHOOK=https://hooks.slack.com/services/XXX/YYY/ZZZ
+ALERT_TELEGRAM_BOT_TOKEN=123456:ABCDEF
+ALERT_TELEGRAM_CHAT_ID=123456
+```
+
+- Zamanlayıcı durumu:
+
+```bash
+systemctl --user list-timers | grep freehekim-health-monitor
+```

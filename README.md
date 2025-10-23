@@ -258,6 +258,18 @@ docker stop docker-grafana-1 docker-prometheus-1 docker-alertmanager-1 2>/dev/nu
 docker rm   docker-grafana-1 docker-prometheus-1 docker-alertmanager-1 2>/dev/null || true
 ```
 
+Lightweight self-monitor (no 3rd‑party):
+
+```bash
+# Configure alerts in ~/.config/freehekim-rag/.env (optional)
+# ALERT_SLACK_WEBHOOK=https://hooks.slack.com/services/XXX/YYY/ZZZ
+# ALERT_TELEGRAM_BOT_TOKEN=123456:ABCDEF...
+# ALERT_TELEGRAM_CHAT_ID=123456
+
+# Install user‑level timer (already set up on this server):
+systemctl --user list-timers | grep freehekim-health-monitor || true
+```
+
 Metrics exposed by the API:
 - Request count & latency
 - Error rates
