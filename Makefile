@@ -2,7 +2,7 @@ PYTHON ?= python3
 PIP ?= pip3
 PORT ?= 8080
 
-.PHONY: install dev-install lint format typecheck test run docker-build docker-up docker-down
+.PHONY: install dev-install lint format typecheck test run docker-build docker-up docker-down smoketest qdrant-verify hooks
 
 install:
 	$(PIP) install -r fastapi/requirements.txt
@@ -37,3 +37,12 @@ docker-down:
 .PHONY: wiki-publish
 wiki-publish:
 	bash tools/publish_wiki.sh
+
+smoketest:
+	bash deployment/scripts/smoketest.sh
+
+qdrant-verify:
+	$(PYTHON) tools/qdrant_verify.py
+
+hooks:
+	pre-commit install || true

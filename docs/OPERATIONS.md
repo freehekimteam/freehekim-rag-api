@@ -14,6 +14,8 @@ make run
 - Prometheus: `GET /metrics`
 - Grafana panelleri: `deployment/monitoring/grafana-dashboards/`
 
+> Not: Üretimde `/metrics` uç noktası Cloudflare Access ile kısıtlanmalı veya `/secure-metrics` (X-Api-Key) kullanılmalıdır.
+
 ## Loglama
 - Her isteğe `X-Request-ID` eklenir
 - Süreler ms cinsinden loglanır
@@ -40,6 +42,22 @@ docker inspect --format='{{.HostConfig.LogConfig}}' docker-api-1
 ## Dağıtım
 - Docker Compose dosyaları: `deployment/docker/`
 - Hızlı başlat: `make docker-up`
+
+### Smoke Test
+```bash
+make smoketest
+```
+
+### Qdrant Doğrulaması
+```bash
+make qdrant-verify
+```
+
+### Cloudflare Tunnel (Erişim)
+- Oturum: `cloudflared tunnel login`
+- Tünel: `cloudflared tunnel create freehekim-rag`
+- DNS: `cloudflared tunnel route dns freehekim-rag rag.hakancloud.com`
+- Servis: `sudo cloudflared service install && sudo systemctl enable --now cloudflared`
 
 ## Ops CLI (Acil Durum ve Bakım)
 ```bash

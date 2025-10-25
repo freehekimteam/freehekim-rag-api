@@ -29,6 +29,8 @@ MANIFEST
 # Testing
 .pytest_cache/
 .coverage
+.mypy_cache/
+.ruff_cache/
 .tox/
 htmlcov/
 *.cover
@@ -39,6 +41,13 @@ htmlcov/
 *.swp
 *.swo
 *~
+
+# Virtual Envs & Local deps
+.venv/
+.venv-*/
+venv/
+env/
+.deps/
 
 # Backup Files
 *.bak
@@ -95,3 +104,7 @@ credentials.json
 /.wiki-publish/
 # CLI export files
 docs/cli-exports/
+
+# Local guideline docs (not tracked)
+/AGENTS.md
+**/AGENTS.md
