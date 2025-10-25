@@ -1,0 +1,100 @@
+{
+  "result": [
+    {
+      "id": "2c58526aef34411884f20df55e9097c5",
+      "paused": false,
+      "description": "allow-metrics-from-me",
+      "action": "allow",
+      "ref": "c98cbcbf2e23443b981fe1c410596e1c",
+      "filter": {
+        "id": "44201c9847c2469c817d09b15c72d4cf",
+        "expression": "ip.src in { 212.12.155.187 } and http.host eq \"rag.hakancloud.com\" and http.request.uri.path eq \"/metrics\"",
+        "paused": false
+      },
+      "created_on": "2025-10-23T12:01:07Z",
+      "modified_on": "2025-10-25T12:50:14Z"
+    },
+    {
+      "id": "9f8dc16cf3d94909a125dc8984d4a98e",
+      "paused": false,
+      "description": "allow-docs-from-me",
+      "action": "allow",
+      "ref": "1cc7c34b285043838fd726a2e0685fa6",
+      "filter": {
+        "id": "fc3937283cf749b98620c1aea758f3ac",
+        "expression": "(ip.src in { 212.12.155.187 } and http.host eq \"rag.hakancloud.com\" and (starts_with(http.request.uri.path, \"/docs\") or starts_with(http.request.uri.path, \"/redoc\") or http.request.uri.path eq \"/openapi.json\"))",
+        "paused": false
+      },
+      "created_on": "2025-10-23T12:06:17Z",
+      "modified_on": "2025-10-25T12:50:14Z"
+    },
+    {
+      "id": "ce5fb460942948a9a2daafd5d1a023ba",
+      "paused": false,
+      "description": "Allow /metrics on metrics subdomain",
+      "action": "allow",
+      "ref": "7cf36889a371499ab6db73c92f54f4c5",
+      "filter": {
+        "id": "acfffc1bdc234948b642a955ec0c41b9",
+        "expression": "(http.host eq \"metrics.hakancloud.com\") and (http.request.uri.path eq \"/metrics\")",
+        "paused": false,
+        "description": "metrics: allow /metrics"
+      },
+      "created_on": "2025-10-25T13:21:49Z",
+      "modified_on": "2025-10-25T13:21:49Z"
+    },
+    {
+      "id": "01bac4638de540e6ac7020d054851062",
+      "paused": false,
+      "description": "block-metrics",
+      "action": "block",
+      "ref": "5724ae2a557c46b89f7d32e68cb64bd5",
+      "filter": {
+        "id": "81c1dffd79444d1dacaac53fa4ebdaa4",
+        "expression": "http.host eq \"rag.hakancloud.com\" and http.request.uri.path eq \"/metrics\"",
+        "paused": false
+      },
+      "created_on": "2025-10-23T11:55:09Z",
+      "modified_on": "2025-10-25T12:50:14Z"
+    },
+    {
+      "id": "8305f33b055346a586971428ad69868d",
+      "paused": false,
+      "description": "block-docs",
+      "action": "block",
+      "ref": "2f42295fcd894edcab9415252b6045ef",
+      "filter": {
+        "id": "7a400dadb69a4f2b8ef3719c62e73c11",
+        "expression": "(http.host eq \"rag.hakancloud.com\" and (starts_with(http.request.uri.path, \"/docs\") or starts_with(http.request.uri.path, \"/redoc\") or http.request.uri.path eq \"/openapi.json\"))",
+        "paused": false
+      },
+      "created_on": "2025-10-23T12:57:38Z",
+      "modified_on": "2025-10-25T12:50:14Z"
+    },
+    {
+      "id": "81e1b28f5b944c9d9224697f23df5490",
+      "paused": false,
+      "description": "Block non-/metrics on metrics subdomain",
+      "action": "block",
+      "ref": "d6dd00fc86a6450bb063036b0564e9b8",
+      "filter": {
+        "id": "5da9789b0e994833b24d34fc37686645",
+        "expression": "(http.host eq \"metrics.hakancloud.com\") and (http.request.uri.path ne \"/metrics\")",
+        "paused": false,
+        "description": "metrics: block non-/metrics"
+      },
+      "created_on": "2025-10-25T12:51:27Z",
+      "modified_on": "2025-10-25T12:51:27Z"
+    }
+  ],
+  "success": true,
+  "errors": [],
+  "messages": [],
+  "result_info": {
+    "page": 1,
+    "per_page": 100,
+    "count": 6,
+    "total_count": 6,
+    "total_pages": 1
+  }
+}

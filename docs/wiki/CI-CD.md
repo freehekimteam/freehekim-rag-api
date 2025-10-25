@@ -33,3 +33,27 @@ Not: Biz hızlı devreye almak için `/tmp/gha-runner` yolunu kullandık (yenide
 ## Notlar
 - GHCR özel imaj kullanımı opsiyoneldir; workflow yerelde `docker-api:latest` imajını otomatik etiketleyerek çalıştırır.
 - `QDRANT_API_KEY` set edilmemişse compose uyarı logu verebilir; `.env` içinde yönetilir.
+## Ana Dal Akışı (Main-First)
+- Çalışma dalı: `feat/<slug>` veya `fix/<slug>`
+- Hedef dal: `main` (PR üzerinden)
+- Zorunluluklar (PR Template):
+  - CI (lint/test) geçer
+  - Güvenlik taramaları (CodeQL + Trivy) geçer
+  - Gizli anahtar yok (diff kontrol)
+  - Gerekirse dokümantasyon güncellendi
+- Sürümleme:
+  - Patch sürümler: küçük düzeltmeler/dokümantasyon/ops (örn. `v2.2.3`)
+  - Tag: `v*.*.*` → Release workflow tetikler
+- Dağıtım (self‑hosted runner):
+  - `Deploy (manual)` veya tag ile `Release` iş akışı
+  - Docker compose pull/up ile güncelleme
+
+## Komutlar (Geliştirici İçin Hızlı Akış)
+```bash
+make dev-install && make lint && make typecheck && make test
+make docker-build && make docker-up && make smoketest
+```
+
+## Notlar
+- `.gitignore` sanal ortamlar ve `AGENTS.md` dahil olacak şekilde güncel
+- Pre-commit: `make hooks` ile aktif edin (ruff + küçük temizlikler)
