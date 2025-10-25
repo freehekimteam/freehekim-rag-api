@@ -3,7 +3,7 @@
 
 [project]
 name = "freehekim-rag-api"
-version = "2.2.2"
+version = "2.2.3"
 description = "Retrieval-Augmented Generation (RAG) API for FreeHekim medical content"
 authors = [
     {name = "FreeHekim Team", email = "dev@hakancloud.com"}

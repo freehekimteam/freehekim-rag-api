@@ -47,6 +47,17 @@ curl http://localhost:9090/api/v1/alerts
   - `deployment/monitoring/grafana-dashboards/rag-overview.json`
   - `deployment/monitoring/grafana-dashboards/qdrant-overview.json`
 
+## Erişim Katmanı: Cloudflare Access + WAF
+- metrics subdomain sadece uygulama metrikleri içindir: `metrics.hakancloud.com -> http://localhost:8080`
+- Uygulama metrik endpoint’i: `/metrics` (FastAPI Instrumentator)
+- Cloudflare Access: `metrics.hakancloud.com` için oturum zorunlu
+- WAF (önerilir): yalnızca `/metrics` yoluna izin ver
+  - İfade: `(http.host eq "metrics.hakancloud.com") and (http.request.uri.path ne "/metrics")`
+  - Aksiyon: `Block`
+- Beklenen sonuçlar:
+  - `curl -I https://metrics.hakancloud.com/metrics` → `302` (Access login)
+  - `curl -I https://metrics.hakancloud.com/random` → `403` (WAF)
+
 ## RAG Metrikleri
 - `rag_total_seconds` (Histogram)
 - `rag_embed_seconds` (Histogram)

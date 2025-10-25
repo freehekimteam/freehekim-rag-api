@@ -53,11 +53,17 @@ make smoketest
 make qdrant-verify
 ```
 
-### Cloudflare Tunnel (Erişim)
-- Oturum: `cloudflared tunnel login`
-- Tünel: `cloudflared tunnel create freehekim-rag`
-- DNS: `cloudflared tunnel route dns freehekim-rag rag.hakancloud.com`
-- Servis: `sudo cloudflared service install && sudo systemctl enable --now cloudflared`
+### Cloudflare Tunnel + Access (Erişim ve Koruma)
+- Ingress (önerilen):
+  - `rag.hakancloud.com -> http://localhost:8080`
+  - `metrics.hakancloud.com -> http://localhost:8080` (yalnızca uygulama `/metrics`)
+- Access: `metrics.hakancloud.com` Cloudflare Access arkasında (login zorunlu)
+- WAF kuralı (saldırı yüzeyini azalt):
+  - İfade: `(http.host eq "metrics.hakancloud.com") and (http.request.uri.path ne "/metrics")`
+  - Aksiyon: `Block`
+- Doğrulama (beklenen):
+  - `curl -I https://metrics.hakancloud.com/metrics` → `302` (Access login)
+  - `curl -I https://metrics.hakancloud.com/random` → `403` (WAF)
 
 ## Ops CLI (Acil Durum ve Bakım)
 ```bash
