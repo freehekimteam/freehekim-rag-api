@@ -29,4 +29,27 @@ Notlar:
 - API tarafında `rag_search_seconds{collection}`
 
 ## Yedekleme
-- Volume: `/var/lib/qdrant_data` → periyodik yedek alın
+- Volume: `/srv/qdrant` → periyodik yedek alın
+
+## Güvenli Erişim (Cloudflare Access ile)
+
+- Yerel erişim (önerilen): SSH tüneli ile `127.0.0.1:6333`.
+- Dış erişim gerekiyorsa: `qdrant.hakancloud.com -> http://localhost:6333` (Cloudflare Tunnel)
+  - Cloudflare Access zorunlu: yalnızca kurum e‑postaları erişir.
+  - WAF genelde gerekmez; Qdrant dashboard/API bazı POST çağrılarına ihtiyaç duyar.
+- Ek koruma: Qdrant server API anahtarını zorunlu kılın.
+  - Env dosyanıza `QDRANT__SERVICE__API_KEY=<değer>` ekleyin.
+  - İstemciler `api-key: <değer>` başlığı ile erişir.
+
+### Doğrulama
+```bash
+# Sunucuda (lokal)
+curl -I http://127.0.0.1:6333/readyz            # 200
+curl -I http://127.0.0.1:6333/collections       # 401 (anahtar yoksa)
+
+# Anahtarla
+curl -H "api-key: $QDRANT__SERVICE__API_KEY" -I http://127.0.0.1:6333/collections   # 200
+
+# Edge (Access ile)
+curl -I https://qdrant.hakancloud.com/          # 302 (Access login)
+```

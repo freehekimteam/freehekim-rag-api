@@ -29,9 +29,6 @@ services:
     image: qdrant/qdrant:v1.15.5
     restart: unless-stopped
     env_file: ${ENV_FILE:-/home/freehekim/.config/freehekim-rag/.env}
-    environment:
-      # Enforce Qdrant server API key using the same secret value
-      QDRANT__SERVICE__API_KEY: ${QDRANT_API_KEY}
     volumes:
       - /var/lib/qdrant_data:/qdrant/storage
     ports:

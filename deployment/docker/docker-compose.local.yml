@@ -1,0 +1,12 @@
+services:
+  qdrant:
+    environment:
+      - QDRANT__SERVICE__API_KEY=${QDRANT_API_KEY}
+    volumes:
+      - /srv/qdrant:/qdrant/storage
+  api:
+    environment:
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+    # Prefer ENV_FILE env var; fallback to /etc path for production
+    env_file: ${ENV_FILE:-/etc/freehekim-rag/.env}

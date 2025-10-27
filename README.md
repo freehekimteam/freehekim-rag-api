@@ -185,10 +185,10 @@ Server (prod) uses a dedicated env file path and compose reads it directly:
 
 ```bash
 # Server
-ENV_FILE=/home/freehekim/.config/freehekim-rag/.env
+ENV_FILE=/etc/freehekim-rag/.env
 
 # Compose fallbacks to this path if ENV_FILE is not set:
-# env_file: ${ENV_FILE:-/home/freehekim/.config/freehekim-rag/.env}
+# env_file: ${ENV_FILE:-/etc/freehekim-rag/.env}
 ```
 
 Security recommendation: enforce API key on production (`REQUIRE_API_KEY=true`) and set a strong `API_KEY`. Cloudflare Access remains enabled.

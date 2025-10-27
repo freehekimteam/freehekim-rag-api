@@ -2,14 +2,14 @@
 
 Tüm ayarlar `.env` ile yönetilir. Örnekler için `.env.example` dosyasını inceleyin.
 
-Sunucuda sade ve güvenli kurulum için env dosyası kullanıcı dizininde tutulur ve docker-compose bu yolu doğrudan okur:
+Sunucuda sade ve güvenli kurulum için env dosyası sistem dizininde tutulur ve docker-compose bu yolu doğrudan okur:
 
 ```bash
 # Sunucu (prod)
-ENV_FILE=/home/freehekim/.config/freehekim-rag/.env
+ENV_FILE=/etc/freehekim-rag/.env
 
 # Compose dosyası fallback olarak bu yolu kullanır:
-# env_file: ${ENV_FILE:-/home/freehekim/.config/freehekim-rag/.env}
+# env_file: ${ENV_FILE:-/etc/freehekim-rag/.env}
 ```
 
 Yerel geliştirme için repo kökünde `.env` kullanmaya devam edebilirsiniz (ENV_FILE tanımlanmadıysa dev’deki yol devreye girer).
