@@ -90,3 +90,10 @@ sudo rsync -a --delete /var/backups/freehekim-rag/latest/qdrant/ /srv/qdrant/
 sudo rsync -a --delete /var/backups/freehekim-rag/latest/etc/ /etc/freehekim-rag/
 sudo systemctl start freehekim-rag.service
 ```
+
+## Doğrulama
+
+- Mount kontrolü:
+  - `docker inspect -f '{{range .Mounts}}{{println .Source "->" .Destination}}{{end}}' docker-qdrant-1 | rg '/srv/qdrant'`
+- API hazır:
+  - `curl -s http://127.0.0.1:8080/ready`

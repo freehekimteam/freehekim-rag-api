@@ -65,3 +65,8 @@ sudo systemctl start freehekim-rag.service
 ```
 
 Not: Portlar yalnızca `127.0.0.1`’e bağlıdır; dış erişim için Cloudflared tünel kullanılır.
+
+## Compose (Docker) Env Notu
+
+- Compose env kaynağı: `ENV_FILE=/home/freehekim/.config/freehekim-rag/.env`
+- İzinler: `chmod 600 ~/.config/freehekim-rag/.env`

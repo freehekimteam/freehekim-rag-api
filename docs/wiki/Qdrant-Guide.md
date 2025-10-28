@@ -29,4 +29,4 @@ Notlar:
 - API tarafında `rag_search_seconds{collection}`
 
 ## Yedekleme
-- Volume: `/var/lib/qdrant_data` → periyodik yedek alın
+- Volume: `/srv/qdrant` → periyodik yedek alın

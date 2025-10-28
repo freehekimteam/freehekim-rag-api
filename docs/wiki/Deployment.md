@@ -10,7 +10,7 @@ docker compose -f deployment/docker/docker-compose.server.yml up -d
 ```
 
 - API: 127.0.0.1:8080
-- Qdrant: 127.0.0.1:6333 (veri: /var/lib/qdrant_data)
+- Qdrant: 127.0.0.1:6333 (veri: /srv/qdrant)
   - Sürüm: 1.15.5 (docker image: qdrant/qdrant:v1.15.5)
 - Healthcheck’ler compose içinde tanımlıdır.
 
