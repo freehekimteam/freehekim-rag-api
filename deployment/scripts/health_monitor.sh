@@ -22,7 +22,7 @@ MONITOR_EXPECT_HEALTH="${MONITOR_EXPECT_HEALTH:-200}"
 MONITOR_EXPECT_READY="${MONITOR_EXPECT_READY:-200}"
 MONITOR_TIMEOUT="${MONITOR_TIMEOUT:-8}"
 
-# False-positive filter / quiet hours
+# False-positive filter / quiet hours / cooldown
 MONITOR_CONSECUTIVE_FAILS="${MONITOR_CONSECUTIVE_FAILS:-3}"
 MONITOR_STATE_DIR="${MONITOR_STATE_DIR:-$HOME/.local/state/freehekim}"
 MONITOR_STATE_FILE="$MONITOR_STATE_DIR/rag_monitor.state"
@@ -30,6 +30,9 @@ MONITOR_SEND_RECOVERY="${MONITOR_SEND_RECOVERY:-true}"
 MONITOR_QUIET_START="${MONITOR_QUIET_START:-}"
 MONITOR_QUIET_END="${MONITOR_QUIET_END:-}"
 MONITOR_SUPPRESS_ALERTS_DURING_QUIET="${MONITOR_SUPPRESS_ALERTS_DURING_QUIET:-true}"
+# Minimum minutes between consecutive alerts while a failure persists
+MONITOR_ALERT_COOLDOWN_MINUTES="${MONITOR_ALERT_COOLDOWN_MINUTES:-240}"
+COOLDOWN_SECONDS=$((10#$MONITOR_ALERT_COOLDOWN_MINUTES * 60))
 
 ALERT_SLACK_WEBHOOK="${ALERT_SLACK_WEBHOOK:-}"
 ALERT_TG_TOKEN="${ALERT_TELEGRAM_BOT_TOKEN:-}"
@@ -75,7 +78,8 @@ fi
 # Ensure state dir exists
 mkdir -p "$MONITOR_STATE_DIR"
 [ -f "$MONITOR_STATE_FILE" ] || echo "fails=0
-was_down=0" > "$MONITOR_STATE_FILE"
+was_down=0
+last_alert_epoch=0" > "$MONITOR_STATE_FILE"
 
 # shellcheck disable=SC1090
 . "$MONITOR_STATE_FILE"
@@ -102,21 +106,30 @@ host=$(hostname -s 2>/dev/null || echo server)
 if [ "$fail" -ne 0 ]; then
   fails=$((fails + 1))
   was_down=1
-  echo "fails=$fails
-was_down=$was_down" > "$MONITOR_STATE_FILE"
+  now_epoch=$(date +%s)
+  : "${last_alert_epoch:=0}"
   # Decide to alert only if threshold reached and not suppressed by quiet hours
   if [ "$fails" -ge "$MONITOR_CONSECUTIVE_FAILS" ]; then
     if in_quiet_hours && [ "$MONITOR_SUPPRESS_ALERTS_DURING_QUIET" = "true" ]; then
       echo "[$(ts)] RAG monitor FAIL (suppressed due to quiet hours): health=$c_health, ready=$c_ready (streak=$fails)"
     else
-      msg="[$(ts)] RAG monitor ALERT on $host: health=$c_health (expect $MONITOR_EXPECT_HEALTH), ready=$c_ready (expect $MONITOR_EXPECT_READY), streak=$fails"
-      notify "$msg"
-      echo "$msg"
-      # After first alert, keep counting but avoid spamming on every run (alert only at threshold multiples)
+      # Cooldown guard to avoid spamming while still failing
+      if [ $(( now_epoch - last_alert_epoch )) -ge $COOLDOWN_SECONDS ] || [ "$last_alert_epoch" = "0" ]; then
+        msg="[$(ts)] RAG monitor ALERT on $host: health=$c_health (expect $MONITOR_EXPECT_HEALTH), ready=$c_ready (expect $MONITOR_EXPECT_READY), streak=$fails"
+        notify "$msg"
+        echo "$msg"
+        last_alert_epoch=$now_epoch
+      else
+        remain=$(( COOLDOWN_SECONDS - (now_epoch - last_alert_epoch) ))
+        echo "[$(ts)] RAG monitor FAIL (cooldown $remain s remaining): health=$c_health, ready=$c_ready (streak=$fails)"
+      fi
     fi
   else
     echo "[$(ts)] RAG monitor FAIL (no alert yet): health=$c_health, ready=$c_ready (streak=$fails/<$MONITOR_CONSECUTIVE_FAILS)"
   fi
+  echo "fails=$fails
+was_down=$was_down
+last_alert_epoch=$last_alert_epoch" > "$MONITOR_STATE_FILE"
 else
   # If recovering from a down state, optionally notify
   if [ "${was_down:-0}" = "1" ] && [ "$MONITOR_SEND_RECOVERY" = "true" ]; then
@@ -132,5 +145,6 @@ else
   fi
   # reset counters
   echo "fails=0
-was_down=0" > "$MONITOR_STATE_FILE"
+was_down=0
+last_alert_epoch=0" > "$MONITOR_STATE_FILE"
 fi

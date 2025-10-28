@@ -14,27 +14,21 @@ deployment/
 
 ## Quick Deploy
 
-### 1. Setup Environment (single .env at repo root)
+### 1. Setup Environment (system-wide .env)
 
 ```bash
-# Copy example env file to repo root and edit
-cp .env.example .env
-vim .env
-
-# Optional: migrate from legacy ~/.hakancloud/.env
-bash tools/migrate_env.sh
+sudo mkdir -p /etc/freehekim-rag
+sudo cp .env.example /etc/freehekim-rag/.env
+sudo chgrp ragsvc /etc/freehekim-rag/.env 2>/dev/null || true
+sudo chmod 640 /etc/freehekim-rag/.env
 ```
 
-### 2. Deploy with Docker Compose
+### 2. Provision and Systemd Service (Recommended)
 
 ```bash
-# Production deployment
-cd deployment/docker
-docker-compose -f docker-compose.server.yml up -d
-
-# With monitoring
-docker-compose -f docker-compose.server.yml \
-               -f docker-compose.monitoring.yml up -d
+sudo bash deployment/scripts/provision_freehekim_rag.sh
+sudo systemctl start freehekim-rag.service
+sudo systemctl enable freehekim-rag.service
 ```
 
 ### 3. Verify
@@ -176,29 +170,26 @@ Configured in `monitoring/prometheus.yml`:
 - Low disk space
 - Container down
 
-## Backup & Recovery
-
-### Backup
+## Backup & Recovery (Daily Incremental)
 
 ```bash
-# Run backup script
-./scripts/backup.sh
+# Status
+systemctl status freehekim-rag-backup.timer
 
-# Manual backup
-docker exec qdrant tar czf /backup/qdrant-$(date +%Y%m%d).tar.gz /qdrant/storage
+# Manual run
+sudo systemctl start freehekim-rag-backup.service
+
+# Check
+tail -n 50 /var/backups/freehekim-rag/backup.log
 ```
 
-### Restore
+Restore from latest backup:
 
 ```bash
-# Stop services
-docker-compose down
-
-# Restore data
-tar xzf backup.tar.gz -C /
-
-# Start services
-docker-compose up -d
+sudo systemctl stop freehekim-rag.service
+sudo rsync -a --delete /var/backups/freehekim-rag/latest/qdrant/ /srv/qdrant/
+sudo rsync -a --delete /var/backups/freehekim-rag/latest/etc/ /etc/freehekim-rag/
+sudo systemctl start freehekim-rag.service
 ```
 
 ## Troubleshooting
