@@ -70,30 +70,83 @@ curl http://localhost:9090/api/v1/alerts
 - İstek hızı: `rate(http_requests_total[1m])`
 - API gecikme p95: `histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket[5m])))`
 - RAG toplam p95: `histogram_quantile(0.95, sum by (le) (rate(rag_total_seconds_bucket[5m])))`
-## Hafif İzleme (Workers/cron veya Systemd user)
+## Alertmanager Bildirimleri (Önerilen)
 
-- Bu VPS’te üçüncü parti olmadan hafif kontrol kullanılıyor: `deployment/scripts/health_monitor.sh` + systemd `--user` timer.
-- Varsayılan olarak 2 dakikada bir `https://rag.hakancloud.com/health` ve `http://127.0.0.1:8080/ready` kontrol edilir.
-- Slack/Telegram uyarıları için sunucu kullanıcı env dosyasına aşağıyı ekleyin:
+- Kurumsal bildirim akışı Prometheus → Alertmanager zinciri ile yönetilir.
+- Telegram için alıcıyı `deployment/monitoring/alertmanager.yml` içinde tanımlayın:
 
-```env
-ALERT_SLACK_WEBHOOK=https://hooks.slack.com/services/XXX/YYY/ZZZ
-ALERT_TELEGRAM_BOT_TOKEN=123456:ABCDEF
-ALERT_TELEGRAM_CHAT_ID=123456
+```yaml
+route:
+  group_by: [alertname]
+  group_wait: 2m
+  group_interval: 30m
+  repeat_interval: 4h
+  receiver: telegram
+
+receivers:
+  - name: telegram
+    telegram_configs:
+      - bot_token: "<BOT_TOKEN>"
+        chat_id: <CHAT_ID>
+        send_resolved: false
 ```
 
-- Zamanlayıcı durumu:
+- Notlar:
+  - Kullanılan Alertmanager sürümünde `--config.expand-env` desteklenmeyebilir; bu nedenle gizli bilgileri doğrudan konfig dosyasına veya host tarafında güvenli bir kopyaya (/etc/freehekim-rag/alertmanager.yml) yazın ve compose ile mount edin.
+  - “Quiet hours” için UI’dan “Silences” kullanmanız önerilir (örn. 00:00–08:00 arası). Alternatif olarak child route üzerinde `active_time_intervals` tanımlanabilir.
+
+- Servisi yeniden başlatın (systemd üzerinden):
 
 ```bash
-systemctl --user list-timers | grep freehekim-health-monitor
+sudo systemctl restart freehekim-rag.service
 ```
 
-### İleri Özellikler
-- Art arda N hata → uyarı (false‑positive filtresi):
-  - `MONITOR_CONSECUTIVE_FAILS=3` (varsayılan 3)
-- Sessiz saatler (gece uyarılarını bastırma):
-  - `MONITOR_QUIET_START=23:00`
-  - `MONITOR_QUIET_END=07:00`
-  - `MONITOR_SUPPRESS_ALERTS_DURING_QUIET=true` (varsayılan true)
-- Kurtarma bildirimi:
-  - `MONITOR_SEND_RECOVERY=true` (varsayılan true)
+### Quiet Hours (UI ile Silence ekleme)
+
+Gece saatlerinde (ör. 00:00–08:00) geçici olarak uyarıları susturmak için Alertmanager UI üzerinden Silence oluşturabilirsiniz:
+
+1) UI’yi açın: `http://127.0.0.1:9093`
+2) “Silences” sekmesine gidin → “New Silence”
+3) Matchers (örneklerden birini seçin; aşırı genel kurallardan kaçının):
+   - Sadece kritik ve uyarı: `severity=~"(warning|critical)"`
+   - Sadece API down: `alertname="RagApiDown"`
+4) Zaman aralığı: Başlangıç `00:00`, Bitiş `08:00` (yerel saat). Tek seferlik sessizliktir.
+5) Comment: “Quiet hours (00:00–08:00) – ops”
+6) Create Silence
+
+Komutla (API) Silence oluşturma örneği:
+
+```bash
+curl -X POST http://127.0.0.1:9093/api/v2/silences \
+  -H 'Content-Type: application/json' \
+  -d '{
+        "matchers": [
+          {"name": "severity", "value": "(warning|critical)", "isRegex": true}
+        ],
+        "startsAt": "2025-01-01T00:00:00+03:00",
+        "endsAt":   "2025-01-01T08:00:00+03:00",
+        "createdBy": "ops",
+        "comment":   "Quiet hours (00:00–08:00)"
+      }'
+```
+
+Aktif silenceları görüntüleme:
+
+```bash
+curl -s http://127.0.0.1:9093/api/v2/silences | jq '.[].{id: .id, matchers: .matchers, startsAt, endsAt, comment}'
+```
+
+Notlar
+- Tekrarlayan (her gün) “quiet hours” için en iyi yaklaşım, Alertmanager konfigürasyonuna zaman aralığı (time_intervals) ekleyip ilgili child route’ta `active_time_intervals` kullanmaktır. UI’daki Silence tek seferliktir.
+
+## Opsiyonel: Hafif İzleme (Systemd user)
+
+- Alternatif hafif kontrol betiği: `deployment/scripts/health_monitor.sh` (varsayılan devre dışı).
+- Yalnızca özel durumlarda önerilir. Alertmanager ile birlikte kullanmayın (çift bildirim olur).
+
+Zamanlayıcıyı etkinleştirmek (opsiyonel):
+
+```bash
+systemctl --user enable --now freehekim-health-monitor.timer
+systemctl --user list-timers | grep freehekim-health-monitor
+```
