@@ -1,10 +1,10 @@
-<p align="center">
-  <img src="docs/freehekim-banner.png" alt="FreeHekim" width="640" />
-</p>
-
 # FreeHekim RAG API
 
 **Retrieval-Augmented Generation (RAG) API for FreeHekim**
+
+<p align="center">
+  <img src="docs/freehekim-banner.png" alt="FreeHekim" width="640" />
+</p>
 
 Modern, production-ready AI backend providing intelligent medical content search and question-answering capabilities using vector embeddings and GPT-4.
 
