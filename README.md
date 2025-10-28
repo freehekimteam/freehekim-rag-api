@@ -9,6 +9,7 @@
 Modern, production-ready AI backend providing intelligent medical content search and question-answering capabilities using vector embeddings and GPT-4.
 
 [![CI Status](https://github.com/freehekimteam/freehekim-rag-api/actions/workflows/ci.yml/badge.svg)](https://github.com/freehekimteam/freehekim-rag-api/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/freehekimteam/freehekim-rag-api?sort=semver)](https://github.com/freehekimteam/freehekim-rag-api/releases)
 [![Security: Trivy](https://github.com/freehekimteam/freehekim-rag-api/actions/workflows/trivy.yml/badge.svg)](https://github.com/freehekimteam/freehekim-rag-api/actions/workflows/trivy.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
@@ -397,6 +398,10 @@ Menü: Genel Durum, Sağlık, Qdrant Koleksiyonları, Hızlı RAG Testi, Koruma 
 - Beklenmeyen hatalar → `500` + `{"error": "Internal server error. Please try again later."}`
 
 ```
+
+## License
+
+This project is licensed under the MIT License. See `LICENSE` for details.
 
 ## Contributing
 
