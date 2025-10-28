@@ -2,6 +2,19 @@
 
 All notable changes to the FreeHekim RAG API project.
 
+## [2.2.4] - 2025-10-28 - Qdrant Data Path & Docs
+
+### Changed
+- Deploy: Qdrant kalıcı veri yolu `/var/lib/qdrant_data` → `/srv/qdrant`
+- Compose: `env_file` varsayılanı `~/.config/freehekim-rag/.env` olacak şekilde netleştirildi
+- Scripts: `deployment/scripts/backup.sh` yeni veri yoluna göre güncellendi
+- Docs: Wiki ve Deployment dökümanlarında yeni yol ve doğrulama adımları eklendi
+
+### Added
+- Ops doğrulama adımları (mount ve `/ready` kontrolleri) wiki’ye eklendi
+
+### Notes
+- Qdrant koleksiyonları sıfırdan oluşturuldu (1536 dim): `freehekim_internal`, `freehekim_external`
 ## [2.2.3] - 2025-10-25 - Ops & Güvenlik Düzeltmeleri (Patch)
 
 ### Added
