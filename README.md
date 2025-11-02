@@ -1,5 +1,7 @@
 # FreeHekim RAG API
 
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/97b78bb0ee884d49a7fd262d02eb5bf6)](https://app.codacy.com/gh/freehekimteam/freehekim-rag-api/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
+
 **Retrieval-Augmented Generation (RAG) API for FreeHekim**
 
 <p align="center">
