@@ -298,3 +298,14 @@ Code optimization and CLI implemented by Codex AI with guidance from FreeHekim t
 - System test updated to use lazy Qdrant client
 
 ---
+## [2.2.6] - 2025-11-02 - Prod Hardening & Auto Deploy
+
+### Added
+- CI: Auto Deploy on `main` (build GHCR `:dev` + compose up)
+- Dependabot config for actions, pip and docker
+
+### Changed
+- Dockerfile: Non‑root user, OCI labels, HEALTHCHECK, runtime envs
+- Compose: read_only fs, tmpfs:/tmp, no-new-privileges, cap_drop ALL
+- CI: Pin checkout/setup-python actions to full SHAs
+- Requirements: Pin runtime deps (httpx, numpy, dotenv, pydantic-settings, openai, python-json-logger)
