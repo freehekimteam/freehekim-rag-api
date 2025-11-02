@@ -141,13 +141,12 @@ class Settings(BaseSettings):
     @field_validator("qdrant_api_key", mode="before")
     @classmethod
     def _validator_qdrant_api_key(cls, v: str | None, info) -> str | None:
-        # Delegate to (patchable) validate_qdrant_key.
-        # If it's a bound classmethod, call with (v, info);
-        # if it's a plain function patched in tests, call with (cls, v, info).
-        func = cls.validate_qdrant_key
-        if inspect.ismethod(func):  # bound to cls
-            return func(v, info)
-        return func(cls, v, info)
+        # Delegate to (patchable) validate_qdrant_key without triggering binding.
+        raw = inspect.getattr_static(cls, "validate_qdrant_key")
+        if isinstance(raw, classmethod):
+            return raw.__func__(cls, v, info)  # pylint: disable=too-many-function-args
+        # Patched plain function
+        return raw(cls, v, info)  # pylint: disable=too-many-function-args
 
     @classmethod
     def validate_openai_key(cls, v: str | None, info) -> str | None:
@@ -161,10 +160,10 @@ class Settings(BaseSettings):
     @classmethod
     def _validator_openai_api_key(cls, v: str | None, info) -> str | None:
         # Delegate to (patchable) validate_openai_key using the same strategy.
-        func = cls.validate_openai_key
-        if inspect.ismethod(func):
-            return func(v, info)
-        return func(cls, v, info)
+        raw = inspect.getattr_static(cls, "validate_openai_key")
+        if isinstance(raw, classmethod):
+            return raw.__func__(cls, v, info)  # pylint: disable=too-many-function-args
+        return raw(cls, v, info)  # pylint: disable=too-many-function-args
 
     def get_qdrant_api_key(self) -> str | None:
         """Get plain text Qdrant API key"""
