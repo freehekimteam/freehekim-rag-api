@@ -127,8 +127,10 @@ def search(
                 else:
                     break
 
-        assert last_exc is not None
-        raise last_exc
+        if last_exc is not None:
+            raise last_exc
+        # Defensive: should not happen, but avoid `assert` in production code
+        raise RuntimeError("Qdrant search failed for unknown reason")
 
     except Exception as e:
         logger.error(f"Qdrant search error in {collection}: {e}")
