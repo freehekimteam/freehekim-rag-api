@@ -1,7 +1,3 @@
-<p align="center">
-  <img src="docs/assets/freehekim-banner.png" alt="FreeHekim" width="640" />
-</p>
-
 # FreeHekim RAG API
 
 **Retrieval-Augmented Generation (RAG) API for FreeHekim**
