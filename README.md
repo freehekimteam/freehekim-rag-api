@@ -122,19 +122,36 @@ Modern, production-ready AI backend providing intelligent medical content search
 
 ### Production Deployment
 
-**Automated via GitHub Actions:**
+Bu repo, self‑hosted runner üzerinde iki yolla yayınlanır:
 
-1. **Run `Deploy (manual)` workflow** → Yerel runner’da docker compose pull/up
-2. **Create tag `v*.*.*`** → `Release (on tag)` çalışır, yerel runner’da pull/up
+1) Auto Deploy (main)
+- Tetikleyici: `push` → `main`
+- Workflow: `.github/workflows/auto-deploy.yml`
+- Adımlar: GHCR `:dev` imajını build+push → server’da `docker compose up -d`
 
-Not: GHCR gerekiyorsa imaj push ekleyin; varsayılan kurulumda workflow, yerelde bulunan `docker-api:latest` imajını `ghcr.io/freehekimteam/freehekim-rag-api:dev` olarak etiketleyip çalıştırır (pull başarısız olsa bile up -d yapılır).
+2) Release (tag)
+- Tetikleyici: `push` → `v*.*.*`
+- Workflow: `.github/workflows/release.yml`
+- Adımlar: GHCR `:vX.Y.Z` ve `:dev` build+push → server’da `docker compose up -d`
 
-**Manual deployment:**
+Doğrulama (sunucu):
 ```bash
-# On server
-cd ~/freehekim-rag-api
-docker compose -f docker/docker-compose.server.yml pull
-docker compose -f docker/docker-compose.server.yml up -d
+docker ps --format '{{.Names}}  {{.Image}}  {{.Status}}'
+docker inspect docker-api-1 --format '{{json .Config.Labels}}' | jq   # OCI labels (revision/created)
+curl -fsS http://127.0.0.1:8080/health
+curl -fsS http://127.0.0.1:8080/ready
+```
+
+Güvenlik ve Çalışma Zamanı (container):
+- Non‑root kullanıcı (`appuser`), `read_only: true`, `tmpfs: /tmp`
+- `security_opt: no-new-privileges:true`, `cap_drop: ALL`
+- API host default `127.0.0.1` (reverse proxy arkasında yayınlayın)
+
+Manuel deployment (gerekirse):
+```bash
+cd /opt/freehekim-rag-api
+docker compose -f deployment/docker/docker-compose.server.yml pull || true
+docker compose -f deployment/docker/docker-compose.server.yml up -d
 ```
 
 ## API Endpoints
