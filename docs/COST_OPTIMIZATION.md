@@ -22,4 +22,3 @@ Bu sayfa, aylık OpenAI/Qdrant maliyetlerini düşürmeye yönelik pratik öneri
 ## İzleme
 - `rag_generate_seconds` ve `rag_total_seconds` düşerken kalite korunuyor mu?
 - Token kullanımı ve cevap kalitesi ticaret-off’u izleyin.
-
