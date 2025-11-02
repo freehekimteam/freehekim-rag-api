@@ -11,17 +11,18 @@ Tests the complete RAG pipeline:
 Usage:
     python test_rag_system.py
 """
-import os
+
 import sys
 from pathlib import Path
 
 # Add fastapi directory to path
 sys.path.insert(0, str(Path(__file__).parent / "fastapi"))
 
-from rag.embeddings import embed, embed_batch, get_embedding_dimension
-from rag.client_qdrant import get_qdrant_client, INTERNAL, EXTERNAL
-from rag.pipeline import retrieve_answer
 from config import Settings
+from rag.client_qdrant import get_qdrant_client
+from rag.embeddings import embed
+from rag.pipeline import retrieve_answer
+
 
 def test_config():
     """Test configuration loading"""
@@ -37,6 +38,7 @@ def test_config():
     print(f"✓ OpenAI Model: {settings.openai_embedding_model}")
     print(f"✓ OpenAI API Key: {'✓ Set' if settings.openai_api_key else '✗ Missing'}")
     print()
+    return True
 
 
 def test_embeddings():
@@ -52,7 +54,7 @@ def test_embeddings():
         print(f"Query: {test_text}")
         vector = embed(test_text)
 
-        print(f"✓ Embedding generated successfully")
+        print("✓ Embedding generated successfully")
         print(f"✓ Dimension: {len(vector)}")
         print(f"✓ First 5 values: {vector[:5]}")
         print()
@@ -73,12 +75,14 @@ def test_qdrant_connection():
         client = get_qdrant_client()
         collections = client.get_collections().collections
 
-        print(f"✓ Connected to Qdrant")
+        print("✓ Connected to Qdrant")
         print(f"✓ Found {len(collections)} collections:")
 
         for col in collections:
             info = client.get_collection(col.name)
-            print(f"  - {col.name}: {info.points_count} points, {info.config.params.vectors.size} dims")
+            print(
+                f"  - {col.name}: {info.points_count} points, {info.config.params.vectors.size} dims"
+            )
 
         print()
         return True
@@ -96,7 +100,7 @@ def test_rag_pipeline():
     test_queries = [
         "Diyabet hastalığı nedir?",
         "Metformin yan etkileri nelerdir?",
-        "COVID-19 aşısı güvenli midir?"
+        "COVID-19 aşısı güvenli midir?",
     ]
 
     for i, query in enumerate(test_queries, 1):
@@ -107,15 +111,15 @@ def test_rag_pipeline():
         try:
             result = retrieve_answer(query, top_k=3)
 
-            print(f"✓ Answer generated:")
+            print("✓ Answer generated:")
             print(f"  {result['answer'][:200]}...")
             print()
             print(f"✓ Sources used: {len(result['sources'])}")
-            for j, source in enumerate(result['sources'], 1):
+            for j, source in enumerate(result["sources"], 1):
                 print(f"  [{j}] {source['source']} (score: {source['score']})")
 
             print()
-            print(f"✓ Metadata:")
+            print("✓ Metadata:")
             print(f"  - Internal hits: {result['metadata']['internal_hits']}")
             print(f"  - External hits: {result['metadata']['external_hits']}")
             print(f"  - Tokens used: {result['metadata']['tokens_used']}")
@@ -137,20 +141,20 @@ def main():
     results = {}
 
     # Test 1: Configuration
-    results['config'] = test_config()
+    results["config"] = test_config()
 
     # Test 2: Embeddings
-    results['embeddings'] = test_embeddings()
+    results["embeddings"] = test_embeddings()
 
     # Test 3: Qdrant
-    results['qdrant'] = test_qdrant_connection()
+    results["qdrant"] = test_qdrant_connection()
 
     # Test 4: Full RAG (only if previous tests passed)
-    if all([results['config'], results['embeddings'], results['qdrant']]):
-        results['rag_pipeline'] = test_rag_pipeline()
+    if all([results["config"], results["embeddings"], results["qdrant"]]):
+        results["rag_pipeline"] = test_rag_pipeline()
     else:
         print("⚠️  Skipping RAG pipeline test due to previous failures")
-        results['rag_pipeline'] = False
+        results["rag_pipeline"] = False
 
     # Summary
     print("=" * 60)
@@ -180,5 +184,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\n\n❌ Unexpected error: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

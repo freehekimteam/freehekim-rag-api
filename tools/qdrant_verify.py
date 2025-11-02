@@ -14,10 +14,8 @@ Kullanım:
   ✓ freehekim_external: 1536 dims, 8540 points
   ✓ Hepsi uyumlu
 """
-from __future__ import annotations
 
-import sys
-from typing import Tuple
+from __future__ import annotations
 
 from pathlib import Path
 
@@ -25,25 +23,24 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 FASTAPI_DIR = REPO_ROOT / "fastapi"
 import sys as _sys
+
 _sys.path.insert(0, str(FASTAPI_DIR))
 
-from config import Settings  # type: ignore  # noqa: E402
-from rag.embeddings import get_embedding_dimension  # type: ignore  # noqa: E402
 from rag.client_qdrant import (  # type: ignore  # noqa: E402
-    INTERNAL,
     EXTERNAL,
+    INTERNAL,
     get_qdrant_client,
 )
+from rag.embeddings import get_embedding_dimension  # type: ignore  # noqa: E402
 
 
 def main() -> int:
-    settings = Settings()
     expected = get_embedding_dimension()
     print(f"✓ Beklenen dim: {expected}")
 
     client = get_qdrant_client()
 
-    def info(name: str) -> Tuple[int, int]:
+    def info(name: str) -> tuple[int, int]:
         meta = client.get_collection(name)
         # qdrant_client 1.9.0: vectors config altından boyut
         size = meta.config.params.vectors.size  # type: ignore[attr-defined]

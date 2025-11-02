@@ -6,17 +6,18 @@ Combines vector search with GPT-4 to generate contextual answers
 from medical knowledge base.
 """
 
+import hashlib
 import logging
 import time
-import hashlib
 from typing import Any
 
 try:  # Compatibility across openai versions
-    from openai import OpenAI, OpenAIError  # type: ignore
+    from openai import OpenAI, OpenAIError  # type: ignore  # nosemgrep
 except Exception:
-    from openai import OpenAI  # type: ignore
+    from openai import OpenAI  # type: ignore  # nosemgrep
+
     try:
-        from openai import APIError as OpenAIError  # type: ignore
+        from openai import APIError as OpenAIError  # type: ignore  # nosemgrep
     except Exception:  # Last resort
         OpenAIError = Exception  # type: ignore
 from qdrant_client.models import ScoredPoint
@@ -34,8 +35,7 @@ RRF_K = 60  # Reciprocal-Rank Fusion constant
 
 # Medical disclaimer in Turkish
 MEDICAL_DISCLAIMER = (
-    "⚠️ Bu bilgi tıbbi tavsiye değildir. "
-    "Sağlık kararlarınız için mutlaka hekiminize danışın."
+    "⚠️ Bu bilgi tıbbi tavsiye değildir. " "Sağlık kararlarınız için mutlaka hekiminize danışın."
 )
 
 # Global OpenAI client for LLM generation
@@ -44,34 +44,30 @@ _response_cache: dict[str, tuple[float, dict[str, Any]]] = {}
 
 # Prometheus metrics for RAG pipeline
 try:
-    from prometheus_client import Histogram, Counter
+    from prometheus_client import Counter, Histogram
 
     RAG_TOTAL_SECONDS = Histogram(
         "rag_total_seconds",
         "Total RAG pipeline duration in seconds",
-        buckets=(0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10)
+        buckets=(0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10),
     )
     RAG_EMBED_SECONDS = Histogram(
         "rag_embed_seconds",
         "Embedding duration in seconds",
-        buckets=(0.01, 0.02, 0.05, 0.1, 0.2, 0.5)
+        buckets=(0.01, 0.02, 0.05, 0.1, 0.2, 0.5),
     )
     RAG_SEARCH_SECONDS = Histogram(
         "rag_search_seconds",
         "Vector search duration in seconds",
         labelnames=("collection",),
-        buckets=(0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1)
+        buckets=(0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1),
     )
     RAG_GENERATE_SECONDS = Histogram(
         "rag_generate_seconds",
         "LLM generation duration in seconds",
-        buckets=(0.1, 0.2, 0.5, 1, 2, 5)
+        buckets=(0.1, 0.2, 0.5, 1, 2, 5),
     )
-    RAG_ERRORS_TOTAL = Counter(
-        "rag_errors_total",
-        "Total RAG errors",
-        labelnames=("type",)
-    )
+    RAG_ERRORS_TOTAL = Counter("rag_errors_total", "Total RAG errors", labelnames=("type",))
     RAG_TOKENS_TOTAL = Counter(
         "rag_tokens_total",
         "Total OpenAI tokens used",
@@ -88,6 +84,7 @@ except Exception:  # Metrics are optional
 
 class RAGError(Exception):
     """Custom exception for RAG pipeline errors"""
+
     pass
 
 
@@ -114,9 +111,7 @@ def _get_llm_client() -> OpenAI:
 
 
 def reciprocal_rank_fusion(
-    internal_results: list[ScoredPoint],
-    external_results: list[ScoredPoint],
-    k: int = RRF_K
+    internal_results: list[ScoredPoint], external_results: list[ScoredPoint], k: int = RRF_K
 ) -> list[tuple[ScoredPoint, float, str]]:
     """
     Combine results from multiple sources using Reciprocal Rank Fusion.
@@ -150,11 +145,7 @@ def reciprocal_rank_fusion(
         rrf_score = 1.0 / (k + rank)
 
         if point_id not in scores:
-            scores[point_id] = {
-                "result": result,
-                "score": 0.0,
-                "source": "internal"
-            }
+            scores[point_id] = {"result": result, "score": 0.0, "source": "internal"}
         scores[point_id]["score"] += rrf_score
 
     # Score external results
@@ -163,22 +154,14 @@ def reciprocal_rank_fusion(
         rrf_score = 1.0 / (k + rank)
 
         if point_id not in scores:
-            scores[point_id] = {
-                "result": result,
-                "score": 0.0,
-                "source": "external"
-            }
+            scores[point_id] = {"result": result, "score": 0.0, "source": "external"}
         else:
             # Document appears in both collections
             scores[point_id]["source"] = "both"
         scores[point_id]["score"] += rrf_score
 
     # Sort by fused score (descending)
-    sorted_results = sorted(
-        scores.values(),
-        key=lambda x: x["score"],
-        reverse=True
-    )
+    sorted_results = sorted(scores.values(), key=lambda x: x["score"], reverse=True)
 
     logger.debug(
         f"RRF merged {len(internal_results)} internal + {len(external_results)} external "
@@ -216,7 +199,7 @@ def generate_answer(question: str, context_chunks: list[dict[str, Any]]) -> dict
             ),
             "tokens_used": 0,
             "model": settings.llm_model,
-            "warning": "No context available"
+            "warning": "No context available",
         }
 
     try:
@@ -259,7 +242,6 @@ Yukarıdaki kaynaklara dayanarak soruyu cevapla. Kaynak numaralarını belirt ve
         # Call GPT-4
         logger.debug(f"Calling {settings.llm_model} with {len(context_chunks)} context chunks")
 
-        last_exc: Exception | None = None
         for attempt in range(3):
             try:
                 response = client.chat.completions.create(
@@ -272,10 +254,10 @@ Yukarıdaki kaynaklara dayanarak soruyu cevapla. Kaynak numaralarını belirt ve
                     max_tokens=settings.llm_max_tokens,
                 )
                 break
-            except OpenAIError as e:
-                last_exc = e
+            except OpenAIError:
                 if attempt < 2:
                     import time as _t
+
                     _t.sleep(0.2 * (2**attempt))
                     continue
                 raise
@@ -289,17 +271,13 @@ Yukarıdaki kaynaklara dayanarak soruyu cevapla. Kaynak numaralarını belirt ve
             answer = f"{answer}\n\n{MEDICAL_DISCLAIMER}"
 
         logger.info(f"✅ Generated answer: {tokens_used} tokens, {len(answer)} chars")
-        if 'RAG_TOKENS_TOTAL' in globals() and RAG_TOKENS_TOTAL:
+        if "RAG_TOKENS_TOTAL" in globals() and RAG_TOKENS_TOTAL:
             try:
                 RAG_TOKENS_TOTAL.labels(model=settings.llm_model).inc(tokens_used)
             except Exception:
-                pass
+                logger.debug("Prometheus token metric update failed; continuing", exc_info=True)
 
-        return {
-            "answer": answer,
-            "tokens_used": tokens_used,
-            "model": settings.llm_model
-        }
+        return {"answer": answer, "tokens_used": tokens_used, "model": settings.llm_model}
 
     except OpenAIError as e:
         logger.error(f"OpenAI LLM error: {e}")
@@ -308,9 +286,9 @@ Yukarıdaki kaynaklara dayanarak soruyu cevapla. Kaynak numaralarını belirt ve
                 "Üzgünüm, şu anda cevap oluşturamıyorum. Lütfen tekrar deneyin.\n\n"
                 f"{MEDICAL_DISCLAIMER}"
             ),
-            "error": f"OpenAI error: {str(e)}",
+            "error": f"OpenAI error: {e!s}",
             "tokens_used": 0,
-            "model": settings.llm_model
+            "model": settings.llm_model,
         }
     except Exception as e:
         logger.error(f"Unexpected error during answer generation: {e}", exc_info=True)
@@ -356,7 +334,7 @@ def retrieve_answer(q: str, top_k: int | None = None) -> dict[str, Any]:
             "answer": f"Lütfen bir soru girin.\n\n{MEDICAL_DISCLAIMER}",
             "sources": [],
             "metadata": {"error": "Empty question"},
-            "error": "Question cannot be empty"
+            "error": "Question cannot be empty",
         }
 
     try:
@@ -381,6 +359,7 @@ def retrieve_answer(q: str, top_k: int | None = None) -> dict[str, Any]:
 
         # Step 2: Search both collections in parallel (thread pool)
         from concurrent.futures import ThreadPoolExecutor
+
         t2 = time.perf_counter()
         with ThreadPoolExecutor(max_workers=2) as executor:
             future_internal = executor.submit(search, query_vector, top_k, INTERNAL)
@@ -393,8 +372,7 @@ def retrieve_answer(q: str, top_k: int | None = None) -> dict[str, Any]:
             RAG_SEARCH_SECONDS.labels(collection="external").observe((t3 - t2) / 2)
 
         logger.info(
-            f"📊 Retrieved: {len(internal_results)} internal, "
-            f"{len(external_results)} external"
+            f"📊 Retrieved: {len(internal_results)} internal, " f"{len(external_results)} external"
         )
 
         # Step 3: Reciprocal-rank fusion
@@ -415,19 +393,21 @@ def retrieve_answer(q: str, top_k: int | None = None) -> dict[str, Any]:
                     "external_hits": len(external_results),
                     "fused_results": 0,
                     "tokens_used": 0,
-                    "model": settings.llm_model
-                }
+                    "model": settings.llm_model,
+                },
             }
 
         # Step 4: Extract context chunks
         context_chunks = []
         for result, score, source in fused_results[:top_k]:
-            context_chunks.append({
-                "text": result.payload.get("text", ""),
-                "source": source,
-                "score": score,
-                "metadata": result.payload.get("metadata", {})
-            })
+            context_chunks.append(
+                {
+                    "text": result.payload.get("text", ""),
+                    "source": source,
+                    "score": score,
+                    "metadata": result.payload.get("metadata", {}),
+                }
+            )
 
         logger.info(f"📚 Using {len(context_chunks)} context chunks for answer generation")
 
@@ -450,7 +430,7 @@ def retrieve_answer(q: str, top_k: int | None = None) -> dict[str, Any]:
                         else chunk["text"]
                     ),
                     "source": chunk["source"],
-                    "score": round(chunk["score"], 4)
+                    "score": round(chunk["score"], 4),
                 }
                 for chunk in context_chunks[: settings.pipeline_max_source_display]
             ],
@@ -459,15 +439,15 @@ def retrieve_answer(q: str, top_k: int | None = None) -> dict[str, Any]:
                 "external_hits": len(external_results),
                 "fused_results": len(fused_results),
                 "tokens_used": generation_result.get("tokens_used", 0),
-                "model": generation_result.get("model", settings.llm_model)
-            }
+                "model": generation_result.get("model", settings.llm_model),
+            },
         }
 
         # Add error field if present in generation
         if "error" in generation_result:
             response["error"] = generation_result["error"]
 
-        logger.info(f"✅ RAG pipeline completed successfully")
+        logger.info("✅ RAG pipeline completed successfully")
         if RAG_TOTAL_SECONDS:
             RAG_TOTAL_SECONDS.observe(t5 - t0)
         # Save to cache
@@ -475,7 +455,7 @@ def retrieve_answer(q: str, top_k: int | None = None) -> dict[str, Any]:
             try:
                 _response_cache[cache_key] = (time.monotonic(), response)
             except Exception:
-                pass
+                logger.debug("Cache save failed; ignoring and continuing", exc_info=True)
         return response
 
     except EmbeddingError as e:
@@ -488,9 +468,9 @@ def retrieve_answer(q: str, top_k: int | None = None) -> dict[str, Any]:
                 "Sorunuzu işlerken bir hata oluştu. Lütfen tekrar deneyin.\n\n"
                 f"{MEDICAL_DISCLAIMER}"
             ),
-            "error": f"Embedding error: {str(e)}",
+            "error": f"Embedding error: {e!s}",
             "sources": [],
-            "metadata": {"error_type": "embedding"}
+            "metadata": {"error_type": "embedding"},
         }
     except ConnectionError as e:
         logger.error(f"Qdrant connection error in RAG pipeline: {e}")
@@ -502,9 +482,9 @@ def retrieve_answer(q: str, top_k: int | None = None) -> dict[str, Any]:
                 "Veritabanı bağlantısı kurulamadı. Lütfen daha sonra tekrar deneyin.\n\n"
                 f"{MEDICAL_DISCLAIMER}"
             ),
-            "error": f"Database error: {str(e)}",
+            "error": f"Database error: {e!s}",
             "sources": [],
-            "metadata": {"error_type": "database"}
+            "metadata": {"error_type": "database"},
         }
     except RAGError as e:
         logger.error(f"RAG pipeline error: {e}")
@@ -518,7 +498,7 @@ def retrieve_answer(q: str, top_k: int | None = None) -> dict[str, Any]:
             ),
             "error": str(e),
             "sources": [],
-            "metadata": {"error_type": "rag"}
+            "metadata": {"error_type": "rag"},
         }
     except Exception as e:
         logger.error(f"Unexpected error in RAG pipeline: {e}", exc_info=True)
@@ -530,9 +510,9 @@ def retrieve_answer(q: str, top_k: int | None = None) -> dict[str, Any]:
                 "Beklenmeyen bir hata oluştu. Lütfen daha sonra tekrar deneyin.\n\n"
                 f"{MEDICAL_DISCLAIMER}"
             ),
-            "error": f"Unexpected error: {str(e)}",
+            "error": f"Unexpected error: {e!s}",
             "sources": [],
-            "metadata": {"error_type": "unexpected"}
+            "metadata": {"error_type": "unexpected"},
         }
 
 

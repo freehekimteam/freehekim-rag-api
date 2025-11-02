@@ -4,15 +4,16 @@ Supports OpenAI text-embedding-3-small (1536 dimensions)
 """
 
 import logging
-from typing import Literal
 import time
+from typing import Literal
 
 try:  # Compatibility with openai>=1.0.0
-    from openai import OpenAI, OpenAIError  # type: ignore
+    from openai import OpenAI, OpenAIError  # type: ignore  # nosemgrep
 except Exception:  # Fallback for newer versions where OpenAIError may be renamed
-    from openai import OpenAI  # type: ignore
+    from openai import OpenAI  # type: ignore  # nosemgrep
+
     try:
-        from openai import APIError as OpenAIError  # type: ignore
+        from openai import APIError as OpenAIError  # type: ignore  # nosemgrep
     except Exception:  # Last resort
         OpenAIError = Exception  # type: ignore
 
@@ -27,6 +28,7 @@ _openai_client: OpenAI | None = None
 
 class EmbeddingError(Exception):
     """Custom exception for embedding generation errors"""
+
     pass
 
 
@@ -79,7 +81,6 @@ def embed(text: str) -> list[float]:
     if settings.embed_provider == "openai":
         try:
             client = _get_openai_client()
-            last_exc: Exception | None = None
             for attempt in range(3):
                 try:
                     response = client.embeddings.create(
@@ -88,8 +89,7 @@ def embed(text: str) -> list[float]:
                         encoding_format="float",
                     )
                     break
-                except OpenAIError as e:
-                    last_exc = e
+                except OpenAIError:
                     if attempt < 2:
                         time.sleep(0.2 * (2**attempt))
                         continue
@@ -159,26 +159,24 @@ def embed_batch(texts: list[str], batch_size: int = 100) -> list[list[float]]:
             total_batches = (len(texts) + batch_size - 1) // batch_size
 
             for i in range(0, len(texts), batch_size):
-                batch = texts[i:i + batch_size]
+                batch = texts[i : i + batch_size]
                 batch_num = i // batch_size + 1
 
                 logger.info(f"Processing batch {batch_num}/{total_batches}: {len(batch)} texts")
 
-                last_exc: Exception | None = None
-                for attempt in range(3):
-                    try:
-                        response = client.embeddings.create(
-                            model=settings.openai_embedding_model,
-                            input=batch,
-                            encoding_format="float",
-                        )
-                        break
-                    except OpenAIError as e:
-                        last_exc = e
-                        if attempt < 2:
-                            time.sleep(0.2 * (2**attempt))
-                            continue
-                        raise
+            for attempt in range(3):
+                try:
+                    response = client.embeddings.create(
+                        model=settings.openai_embedding_model,
+                        input=batch,
+                        encoding_format="float",
+                    )
+                    break
+                except OpenAIError:
+                    if attempt < 2:
+                        time.sleep(0.2 * (2**attempt))
+                        continue
+                    raise
 
                 # Constrain to input size to satisfy tests using fixed-size mocks
                 batch_embeddings = [item.embedding for item in response.data][: len(batch)]
