@@ -42,3 +42,5 @@ Codacy analyzes pull requests and reports a status check. Please keep PRs green 
 - For repositories with external services (OpenAI, Qdrant), integration tests should be marked with `integration`.
 
 If you have questions or want to tune thresholds, open a PR to edit this file and/or the CI workflow.
+
+<!-- e2e: codacy gate test -->
