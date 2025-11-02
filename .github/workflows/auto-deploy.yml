@@ -1,0 +1,46 @@
+name: Auto Deploy (main)
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, linux]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          fetch-depth: 0
+          clean: true
+
+      - name: GHCR Login (using GITHUB_TOKEN)
+        run: echo "${{ github.token }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Build & Push dev image to GHCR
+        env:
+          VCS_REF: ${{ github.sha }}
+          BUILD_DATE: ${{ github.event.head_commit.timestamp }}
+        run: |
+          set -e
+          IMAGE_DEV="ghcr.io/${{ github.repository }}:dev"
+          docker build \
+            --build-arg VCS_REF="$VCS_REF" \
+            --build-arg BUILD_DATE="$BUILD_DATE" \
+            -f deployment/docker/Dockerfile.api \
+            -t "$IMAGE_DEV" .
+          docker push "$IMAGE_DEV"
+
+      - name: Docker Compose Up (server)
+        run: |
+          set -x
+          docker compose -f deployment/docker/docker-compose.server.yml pull || true
+          docker compose -f deployment/docker/docker-compose.server.yml up -d
