@@ -5,6 +5,7 @@ Application settings loaded from environment variables with validation.
 Supports both .env files and environment variables.
 """
 
+import inspect
 import os
 from typing import Literal
 
@@ -140,15 +141,13 @@ class Settings(BaseSettings):
     @field_validator("qdrant_api_key", mode="before")
     @classmethod
     def _validator_qdrant_api_key(cls, v: str | None, info) -> str | None:
-        # Delegate to (patchable) validate_qdrant_key
-        # Works for both classmethod (bound) and a patched plain function
+        # Delegate to (patchable) validate_qdrant_key.
+        # If it's a bound classmethod, call with (v, info);
+        # if it's a plain function patched in tests, call with (cls, v, info).
         func = cls.validate_qdrant_key
-        try:
-            # classmethod or previously bound call
+        if inspect.ismethod(func):  # bound to cls
             return func(v, info)
-        except TypeError:
-            # If patched as a plain function (cls, v, info)
-            return func(cls, v, info)
+        return func(cls, v, info)
 
     @classmethod
     def validate_openai_key(cls, v: str | None, info) -> str | None:
@@ -161,13 +160,11 @@ class Settings(BaseSettings):
     @field_validator("openai_api_key", mode="before")
     @classmethod
     def _validator_openai_api_key(cls, v: str | None, info) -> str | None:
-        # Delegate to (patchable) validate_openai_key
-        # Works for both classmethod (bound) and a patched plain function
+        # Delegate to (patchable) validate_openai_key using the same strategy.
         func = cls.validate_openai_key
-        try:
+        if inspect.ismethod(func):
             return func(v, info)
-        except TypeError:
-            return func(cls, v, info)
+        return func(cls, v, info)
 
     def get_qdrant_api_key(self) -> str | None:
         """Get plain text Qdrant API key"""
