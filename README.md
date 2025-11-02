@@ -8,6 +8,7 @@
 
 Modern, production-ready AI backend providing intelligent medical content search and question-answering capabilities using vector embeddings and GPT-4.
 
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/0af7c1a7c36c4c3da8ad3ea1af32ad97)](https://app.codacy.com/gh/freehekimteam/freehekim-rag-api?utm_source=github.com&utm_medium=referral&utm_content=freehekimteam/freehekim-rag-api&utm_campaign=Badge_Grade)
 [![CI Status](https://github.com/freehekimteam/freehekim-rag-api/actions/workflows/ci.yml/badge.svg)](https://github.com/freehekimteam/freehekim-rag-api/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/freehekimteam/freehekim-rag-api?sort=semver)](https://github.com/freehekimteam/freehekim-rag-api/releases)
 [![Security: Trivy](https://github.com/freehekimteam/freehekim-rag-api/actions/workflows/trivy.yml/badge.svg)](https://github.com/freehekimteam/freehekim-rag-api/actions/workflows/trivy.yml)
