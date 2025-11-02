@@ -12,6 +12,13 @@ permissions:
 jobs:
   build-test:
     runs-on: ubuntu-latest
+    env:
+      CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
+      CODACY_API_TOKEN: ${{ secrets.CODACY_API_TOKEN }}
+      # For API token mode (account token)
+      CODACY_ORGANIZATION_PROVIDER: gh
+      CODACY_USERNAME: freehekimteam
+      CODACY_PROJECT_NAME: freehekim-rag-api
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -39,9 +46,20 @@ jobs:
       - name: Enforce coverage threshold (>= 80%)
         run: coverage report --fail-under=80
 
-      - name: Upload coverage to Codacy
-        if: ${{ hashFiles('coverage.xml') != '' && secrets.CODACY_PROJECT_TOKEN != '' }}
+      - name: Upload coverage to Codacy (project token)
+        if: ${{ env.CODACY_PROJECT_TOKEN != '' && hashFiles('coverage.xml') != '' }}
         uses: codacy/codacy-coverage-reporter-action@v1
         with:
-          project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
+          project-token: ${{ env.CODACY_PROJECT_TOKEN }}
+          coverage-reports: coverage.xml
+
+      - name: Upload coverage to Codacy (account API token)
+        if: ${{ env.CODACY_PROJECT_TOKEN == '' && env.CODACY_API_TOKEN != '' && hashFiles('coverage.xml') != '' }}
+        uses: codacy/codacy-coverage-reporter-action@v1
+        env:
+          CODACY_API_TOKEN: ${{ env.CODACY_API_TOKEN }}
+          CODACY_ORGANIZATION_PROVIDER: ${{ env.CODACY_ORGANIZATION_PROVIDER }}
+          CODACY_USERNAME: ${{ env.CODACY_USERNAME }}
+          CODACY_PROJECT_NAME: ${{ env.CODACY_PROJECT_NAME }}
+        with:
           coverage-reports: coverage.xml
