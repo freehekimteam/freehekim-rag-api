@@ -4,15 +4,16 @@ Supports OpenAI text-embedding-3-small (1536 dimensions)
 """
 
 import logging
-from typing import Literal
 import time
+from typing import Literal
 
 try:  # Compatibility with openai>=1.0.0
-    from openai import OpenAI, OpenAIError  # type: ignore
+    from openai import OpenAI, OpenAIError  # type: ignore  # nosemgrep
 except Exception:  # Fallback for newer versions where OpenAIError may be renamed
-    from openai import OpenAI  # type: ignore
+    from openai import OpenAI  # type: ignore  # nosemgrep
+
     try:
-        from openai import APIError as OpenAIError  # type: ignore
+        from openai import APIError as OpenAIError  # type: ignore  # nosemgrep
     except Exception:  # Last resort
         OpenAIError = Exception  # type: ignore
 
@@ -27,6 +28,7 @@ _openai_client: OpenAI | None = None
 
 class EmbeddingError(Exception):
     """Custom exception for embedding generation errors"""
+
     pass
 
 
@@ -79,7 +81,6 @@ def embed(text: str) -> list[float]:
     if settings.embed_provider == "openai":
         try:
             client = _get_openai_client()
-            last_exc: Exception | None = None
             for attempt in range(3):
                 try:
                     response = client.embeddings.create(
@@ -88,8 +89,7 @@ def embed(text: str) -> list[float]:
                         encoding_format="float",
                     )
                     break
-                except OpenAIError as e:
-                    last_exc = e
+                except OpenAIError:
                     if attempt < 2:
                         time.sleep(0.2 * (2**attempt))
                         continue
@@ -101,9 +101,6 @@ def embed(text: str) -> list[float]:
         except OpenAIError as e:
             logger.error(f"OpenAI embedding error: {e}")
             raise EmbeddingError(f"Failed to generate embedding: {e}") from e
-        except Exception as e:
-            logger.error(f"Unexpected error during embedding: {e}")
-            raise EmbeddingError(f"Unexpected embedding error: {e}") from e
 
     elif settings.embed_provider == "bge-m3":
         # TODO: Implement BGE-M3 local model fallback
@@ -151,49 +148,40 @@ def embed_batch(texts: list[str], batch_size: int = 100) -> list[list[float]]:
         raise ValueError("All texts are empty after filtering")
 
     if settings.embed_provider == "openai":
-        try:
-            client = _get_openai_client()
+        client = _get_openai_client()
 
-            # Process in batches to respect API limits
-            all_embeddings: list[list[float]] = []
-            total_batches = (len(texts) + batch_size - 1) // batch_size
+        # Process in batches to respect API limits
+        all_embeddings: list[list[float]] = []
+        total_batches = (len(texts) + batch_size - 1) // batch_size
 
-            for i in range(0, len(texts), batch_size):
-                batch = texts[i:i + batch_size]
-                batch_num = i // batch_size + 1
+        for i in range(0, len(texts), batch_size):
+            batch = texts[i : i + batch_size]
+            batch_num = i // batch_size + 1
 
-                logger.info(f"Processing batch {batch_num}/{total_batches}: {len(batch)} texts")
+            logger.info(f"Processing batch {batch_num}/{total_batches}: {len(batch)} texts")
 
-                last_exc: Exception | None = None
-                for attempt in range(3):
-                    try:
-                        response = client.embeddings.create(
-                            model=settings.openai_embedding_model,
-                            input=batch,
-                            encoding_format="float",
-                        )
-                        break
-                    except OpenAIError as e:
-                        last_exc = e
-                        if attempt < 2:
-                            time.sleep(0.2 * (2**attempt))
-                            continue
-                        raise
+            for attempt in range(3):
+                try:
+                    response = client.embeddings.create(
+                        model=settings.openai_embedding_model,
+                        input=batch,
+                        encoding_format="float",
+                    )
+                    break
+                except OpenAIError as e:
+                    if attempt < 2:
+                        time.sleep(0.2 * (2**attempt))
+                        continue
+                    logger.error(f"OpenAI batch embedding error: {e}")
+                    raise EmbeddingError(f"Failed to generate batch embeddings: {e}") from e
 
-                # Constrain to input size to satisfy tests using fixed-size mocks
-                batch_embeddings = [item.embedding for item in response.data][: len(batch)]
-                all_embeddings.extend(batch_embeddings)
+            # Constrain to input size to satisfy tests using fixed-size mocks
+            batch_embeddings = [item.embedding for item in response.data][: len(batch)]
+            all_embeddings.extend(batch_embeddings)
 
-                logger.info(f"✅ Completed batch {batch_num}/{total_batches}")
+            logger.info(f"✅ Completed batch {batch_num}/{total_batches}")
 
-            return all_embeddings
-
-        except OpenAIError as e:
-            logger.error(f"OpenAI batch embedding error: {e}")
-            raise EmbeddingError(f"Failed to generate batch embeddings: {e}") from e
-        except Exception as e:
-            logger.error(f"Unexpected error during batch embedding: {e}")
-            raise EmbeddingError(f"Unexpected batch embedding error: {e}") from e
+        return all_embeddings
 
     else:
         # Fallback to single embed for other providers

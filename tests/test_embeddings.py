@@ -59,7 +59,9 @@ class TestEmbed:
     @patch("rag.embeddings._get_openai_client")
     def test_embed_openai_error_raises_embedding_error(self, mock_get_client):
         """Test that OpenAI errors are converted to EmbeddingError"""
-        from openai import OpenAIError
+        # Use OpenAIError alias provided by our embeddings module to avoid
+        # direct dependency on the SDK here
+        from rag.embeddings import OpenAIError
 
         mock_client = MagicMock()
         mock_client.embeddings.create.side_effect = OpenAIError("API error")

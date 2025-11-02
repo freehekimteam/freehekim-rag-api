@@ -1,8 +1,0 @@
-{
-  "name": "hakancloud-dev",
-  "image": "mcr.microsoft.com/devcontainers/python:3.11",
-  "postCreateCommand": "pip install -r fastapi/requirements.txt",
-  "features": {
-    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
-  }
-}

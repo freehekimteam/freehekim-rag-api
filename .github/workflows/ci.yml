@@ -12,6 +12,15 @@ permissions:
 jobs:
   build-test:
     runs-on: ubuntu-latest
+    env:
+      CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
+      CODACY_API_TOKEN: ${{ secrets.CODACY_API_TOKEN }}
+      # For API token mode (account token)
+      CODACY_ORGANIZATION_PROVIDER: gh
+      CODACY_USERNAME: freehekimteam
+      CODACY_PROJECT_NAME: freehekim-rag-api
+      # Toggle total coverage enforcement via repo variable
+      ENFORCE_TOTAL_COVERAGE: ${{ vars.ENFORCE_TOTAL_COVERAGE }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -30,7 +39,37 @@ jobs:
       - name: Lint (ruff)
         run: ruff check fastapi || true
 
-      - name: Tests (pytest)
+      - name: Tests (pytest + coverage)
         env:
           OPENAI_API_KEY: sk-ci-dummy
-        run: pytest -v tests/ || true
+        run: |
+          pytest -v tests/ --cov=fastapi --cov-report=xml || true
+
+      - name: Enforce coverage threshold (pushes to main)
+        if: ${{ env.ENFORCE_TOTAL_COVERAGE == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main' && hashFiles('coverage.xml') != '' }}
+        env:
+          TOTAL_COVERAGE_MIN: ${{ vars.TOTAL_COVERAGE_MIN }}
+        run: |
+          FAIL_UNDER="${TOTAL_COVERAGE_MIN:-80}"
+          echo "Enforcing total coverage >= ${FAIL_UNDER}% on main push"
+          coverage report --fail-under="$FAIL_UNDER"
+
+      - name: Upload coverage to Codacy (project token)
+        if: ${{ env.CODACY_PROJECT_TOKEN != '' && hashFiles('coverage.xml') != '' }}
+        # Pin action to full commit SHA (v1.3.0)
+        uses: codacy/codacy-coverage-reporter-action@89d6c85cfafaec52c72b6c5e8b2878d33104c699
+        with:
+          project-token: ${{ env.CODACY_PROJECT_TOKEN }}
+          coverage-reports: coverage.xml
+
+      - name: Upload coverage to Codacy (account API token)
+        if: ${{ env.CODACY_PROJECT_TOKEN == '' && env.CODACY_API_TOKEN != '' && hashFiles('coverage.xml') != '' }}
+        # Pin action to full commit SHA (v1.3.0)
+        uses: codacy/codacy-coverage-reporter-action@89d6c85cfafaec52c72b6c5e8b2878d33104c699
+        env:
+          CODACY_API_TOKEN: ${{ env.CODACY_API_TOKEN }}
+          CODACY_ORGANIZATION_PROVIDER: ${{ env.CODACY_ORGANIZATION_PROVIDER }}
+          CODACY_USERNAME: ${{ env.CODACY_USERNAME }}
+          CODACY_PROJECT_NAME: ${{ env.CODACY_PROJECT_NAME }}
+        with:
+          coverage-reports: coverage.xml

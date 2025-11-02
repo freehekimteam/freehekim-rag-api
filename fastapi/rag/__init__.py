@@ -10,18 +10,15 @@ from .embeddings import embed, embed_batch, get_embedding_dimension
 from .pipeline import generate_answer, reciprocal_rank_fusion, retrieve_answer
 
 __all__ = [
-    # Qdrant client
-    "search",
-    "INTERNAL",
     "EXTERNAL",
-    # Embeddings
+    "INTERNAL",
     "embed",
     "embed_batch",
-    "get_embedding_dimension",
-    # Pipeline
-    "retrieve_answer",
     "generate_answer",
+    "get_embedding_dimension",
     "reciprocal_rank_fusion",
+    "retrieve_answer",
+    "search",
 ]
 
 __version__ = "1.0.0"

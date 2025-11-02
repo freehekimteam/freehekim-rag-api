@@ -2,6 +2,35 @@
 
 All notable changes to the FreeHekim RAG API project.
 
+## [2.2.5] - 2025-11-02 - Security & CI/Codacy Hardening
+
+### Fixed
+- Security: Do not expose internal exceptions in `/ready` (CWE-209, CodeQL alert)
+
+### Added
+- CI: Enforce coverage threshold on main pushes (`coverage --fail-under=80`)
+- CI: Coverage upload to Codacy via project token, with fallback to account API token
+- Docs: `docs/quality.md` quality gates and workflows
+
+### Changed
+- Codacy: Simplified `.codacy/codacy.yaml` to Python + pylint/semgrep/trivy
+- GitHub Actions: Pin Trivy action to full commit SHA
+- Lint: Per-file ignore for `RUF001` only on Turkish UI strings (keep readability)
+- Static analysis cleanups (unused imports, constant f-strings, safe debug logging)
+
+## [2.2.4] - 2025-10-28 - Qdrant Data Path & Docs
+
+### Changed
+- Deploy: Qdrant kalıcı veri yolu `/var/lib/qdrant_data` → `/srv/qdrant`
+- Compose: `env_file` varsayılanı `~/.config/freehekim-rag/.env` olacak şekilde netleştirildi
+- Scripts: `deployment/scripts/backup.sh` yeni veri yoluna göre güncellendi
+- Docs: Wiki ve Deployment dökümanlarında yeni yol ve doğrulama adımları eklendi
+
+### Added
+- Ops doğrulama adımları (mount ve `/ready` kontrolleri) wiki’ye eklendi
+
+### Notes
+- Qdrant koleksiyonları sıfırdan oluşturuldu (1536 dim): `freehekim_internal`, `freehekim_external`
 ## [2.2.3] - 2025-10-25 - Ops & Güvenlik Düzeltmeleri (Patch)
 
 ### Added

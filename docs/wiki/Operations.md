@@ -63,21 +63,37 @@ Not: Bu işlem koleksiyonları siler ve yeniden oluşturur. Boyut `.env`’deki 
 
 Not: /ready endpoint’i Qdrant’a bağlıdır; health checks için `/health` kullanın.
 
-## Yedekleme (Kullanıcı Alanında – Cronless)
-- Root gerektirmeden Qdrant verisinin günlük yedeği alınır (Docker ile):
-  - Script: `deployment/scripts/backup_qdrant_user.sh`
-  - Zamanlayıcı: systemd user timer
+## Yedekleme (Sistem Servisi – Önerilen)
 
-### Zamanlayıcıyı kontrol et
+- Günlük incremental yedekleme systemd servis ve timer ile kurulu:
+  - Script: `/usr/local/bin/freehekim-rag-backup.sh`
+  - Service: `freehekim-rag-backup.service`
+  - Timer: `freehekim-rag-backup.timer` (her gün 03:30)
+- İçerik:
+  - Qdrant veri: `/srv/qdrant`
+  - Prod env: `/etc/freehekim-rag/`
+- Yedek hedefi: `/var/backups/freehekim-rag/daily/YYYY-MM-DD/{qdrant,etc}`
+  - Son yedeğe symlink: `/var/backups/freehekim-rag/latest`
+  - Saklama: 14 günden eski günlükler otomatik silinir
+
+### Durum / Manuel Çalıştırma
 ```bash
-systemctl --user list-timers | grep freehekim-qdrant-backup
+systemctl status freehekim-rag-backup.timer
+sudo systemctl start freehekim-rag-backup.service
+tail -n 50 /var/backups/freehekim-rag/backup.log
 ```
 
-### Manuel çalıştırma
+### Geri Yükleme (Özet)
 ```bash
-systemctl --user start freehekim-qdrant-backup.service
+sudo systemctl stop freehekim-rag.service
+sudo rsync -a --delete /var/backups/freehekim-rag/latest/qdrant/ /srv/qdrant/
+sudo rsync -a --delete /var/backups/freehekim-rag/latest/etc/ /etc/freehekim-rag/
+sudo systemctl start freehekim-rag.service
 ```
 
-Yedekler: `~/backups/qdrant/qdrant-YYYYmmdd-HHMM.tgz` (7 gün saklama)
+## Doğrulama
 
-Not: Kullanıcı oturumu kapalıyken de çalışması için (opsiyonel) `loginctl enable-linger freehekim` komutu root ile verilebilir.
+- Mount kontrolü:
+  - `docker inspect -f '{{range .Mounts}}{{println .Source "->" .Destination}}{{end}}' docker-qdrant-1 | rg '/srv/qdrant'`
+- API hazır:
+  - `curl -s http://127.0.0.1:8080/ready`

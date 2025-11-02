@@ -6,21 +6,21 @@ for medical content search and question-answering.
 """
 
 import logging
-from typing import Any
-
-from fastapi import FastAPI, HTTPException, Request, status
-from fastapi.responses import JSONResponse
-from fastapi.exceptions import RequestValidationError
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.types import ASGIApp
 import time
 import uuid
-from collections import deque, defaultdict
+from collections import defaultdict, deque
 from contextlib import asynccontextmanager
+from typing import Any
+
 from prometheus_fastapi_instrumentator import Instrumentator
 from pydantic import BaseModel, Field, field_validator
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.types import ASGIApp
 
 from config import Settings
+from fastapi import FastAPI, HTTPException, Request, status
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from rag.pipeline import retrieve_answer
 
 # Configure logging (plain or JSON)
@@ -30,6 +30,7 @@ logger = logging.getLogger(__name__)
 # Initialize settings
 settings = Settings()
 
+
 def _configure_logging() -> None:
     try:
         logging.getLogger().setLevel(getattr(logging, settings.log_level, logging.INFO))
@@ -37,7 +38,9 @@ def _configure_logging() -> None:
             try:
                 from pythonjsonlogger import jsonlogger
             except Exception:
-                logger.warning("JSON logging requested but python-json-logger not installed; using plain logs")
+                logger.warning(
+                    "JSON logging requested but python-json-logger not installed; using plain logs"
+                )
                 return
             root = logging.getLogger()
             for h in list(root.handlers):
@@ -47,9 +50,11 @@ def _configure_logging() -> None:
             handler.setFormatter(formatter)
             root.addHandler(handler)
     except Exception:
-        pass
+        logger.debug("Logging configuration could not be fully applied", exc_info=True)
+
 
 _configure_logging()
+
 
 # FastAPI app with metadata
 @asynccontextmanager
@@ -81,6 +86,7 @@ Instrumentator().instrument(app).expose(app, endpoint="/metrics")
 # ============================================================================
 # Global Exception Handlers (consistent error shape)
 # ============================================================================
+
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(
@@ -123,6 +129,7 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
 # Basic Protections & Observability Middlewares
 # ============================================================================
 
+
 class RequestIDMiddleware(BaseHTTPMiddleware):
     """Attach a unique request id to each request and response."""
 
@@ -160,7 +167,7 @@ class BodySizeLimitMiddleware(BaseHTTPMiddleware):
                 )
         except Exception:
             # Fail-open for safety; downstream may still reject
-            pass
+            logger.debug("Could not parse Content-Length header", exc_info=True)
         return await call_next(request)
 
 
@@ -212,26 +219,30 @@ app.add_middleware(RateLimitMiddleware, requests_per_minute=settings.rate_limit_
 # Pydantic Models for Request/Response Validation
 # ============================================================================
 
+
 class HealthResponse(BaseModel):
     """Health check response model"""
+
     status: str = Field(..., description="Service status", examples=["ok"])
     env: str = Field(..., description="Environment", examples=["staging", "production"])
 
 
 class ReadinessResponse(BaseModel):
     """Readiness check response model"""
+
     ready: bool = Field(..., description="Service readiness status")
     qdrant: dict[str, Any] = Field(..., description="Qdrant connection status")
 
 
 class RAGQueryRequest(BaseModel):
     """RAG query request model"""
+
     q: str = Field(
         ...,
         min_length=3,
         max_length=500,
         description="User question (3-500 characters)",
-        examples=["Diyabet belirtileri nelerdir?"]
+        examples=["Diyabet belirtileri nelerdir?"],
     )
 
     @field_validator("q")
@@ -248,15 +259,14 @@ class RAGQueryRequest(BaseModel):
 
 class RAGQueryResponse(BaseModel):
     """RAG query response model"""
+
     question: str = Field(..., description="Original question")
     answer: str = Field(..., description="Generated answer with medical disclaimer")
     sources: list[dict[str, Any]] = Field(
-        default_factory=list,
-        description="Source documents used for answer generation"
+        default_factory=list, description="Source documents used for answer generation"
     )
     metadata: dict[str, Any] = Field(
-        default_factory=dict,
-        description="Pipeline metadata (tokens, model, etc.)"
+        default_factory=dict, description="Pipeline metadata (tokens, model, etc.)"
     )
     error: str | None = Field(None, description="Error message if query failed")
 
@@ -265,12 +275,8 @@ class RAGQueryResponse(BaseModel):
 # API Endpoints
 # ============================================================================
 
-@app.get(
-    "/health",
-    response_model=HealthResponse,
-    tags=["Health"],
-    summary="Health check endpoint"
-)
+
+@app.get("/health", response_model=HealthResponse, tags=["Health"], summary="Health check endpoint")
 def health() -> HealthResponse:
     """
     Service health check.
@@ -288,8 +294,8 @@ def health() -> HealthResponse:
     summary="Readiness probe",
     responses={
         200: {"description": "Service is ready"},
-        503: {"description": "Service not ready (Qdrant unreachable)"}
-    }
+        503: {"description": "Service not ready (Qdrant unreachable)"},
+    },
 )
 def ready() -> ReadinessResponse | JSONResponse:
     """
@@ -317,20 +323,22 @@ def ready() -> ReadinessResponse | JSONResponse:
             qdrant={
                 "connected": True,
                 "collections": collection_names,
-                "count": len(collection_names)
-            }
+                "count": len(collection_names),
+            },
         )
-    except Exception as e:
-        logger.error(f"Readiness check failed: {e}")
+    except Exception:
+        # Log full details server-side; avoid exposing internals to clients
+        logger.error("Readiness check failed", exc_info=True)
         return JSONResponse(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             content={
                 "ready": False,
                 "qdrant": {
                     "connected": False,
-                    "error": str(e)
-                }
-            }
+                    # Do not expose internal exception details
+                    "error": "unavailable",
+                },
+            },
         )
 
 
@@ -342,8 +350,8 @@ def ready() -> ReadinessResponse | JSONResponse:
     responses={
         200: {"description": "Successful answer generation"},
         400: {"description": "Invalid request"},
-        500: {"description": "Internal server error"}
-    }
+        500: {"description": "Internal server error"},
+    },
 )
 def rag_query(request: RAGQueryRequest, raw: Request) -> RAGQueryResponse:
     """
@@ -382,16 +390,13 @@ def rag_query(request: RAGQueryRequest, raw: Request) -> RAGQueryResponse:
         return RAGQueryResponse(**result)
     except ValueError as e:
         logger.error(f"Validation error: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
     except Exception as e:
         logger.error(f"RAG query failed: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Internal server error. Please try again later."
-        )
+            detail="Internal server error. Please try again later.",
+        ) from e
 
 
 # ============================================================================

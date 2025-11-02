@@ -6,11 +6,17 @@
 
 **Retrieval-Augmented Generation (RAG) API for FreeHekim**
 
+<p align="center">
+  <img src="docs/freehekim-banner.png" alt="FreeHekim" width="640" />
+</p>
+
 Modern, production-ready AI backend providing intelligent medical content search and question-answering capabilities using vector embeddings and GPT-4.
 
 [![CI Status](https://github.com/freehekimteam/freehekim-rag-api/actions/workflows/ci.yml/badge.svg)](https://github.com/freehekimteam/freehekim-rag-api/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/freehekimteam/freehekim-rag-api?sort=semver)](https://github.com/freehekimteam/freehekim-rag-api/releases)
 [![Security: Trivy](https://github.com/freehekimteam/freehekim-rag-api/actions/workflows/trivy.yml/badge.svg)](https://github.com/freehekimteam/freehekim-rag-api/actions/workflows/trivy.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/97b78bb0ee884d49a7fd262d02eb5bf6)](https://app.codacy.com/gh/freehekimteam/freehekim-rag-api/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 
 ---
 
@@ -397,6 +403,10 @@ Menü: Genel Durum, Sağlık, Qdrant Koleksiyonları, Hızlı RAG Testi, Koruma 
 - Beklenmeyen hatalar → `500` + `{"error": "Internal server error. Please try again later."}`
 
 ```
+
+## License
+
+This project is licensed under the MIT License. See `LICENSE` for details.
 
 ## Contributing
 

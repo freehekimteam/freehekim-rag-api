@@ -5,18 +5,18 @@ FreeHekim RAG – Ops CLI
 Amaç: Kriz/bakım anında hızlı teşhis ve güvenli operasyon adımları.
 Kontroller: Ok tuşları (↑/↓), Enter, Space, Ctrl+C/ Ctrl+Q ile çıkış.
 """
+
 from __future__ import annotations
 
 import sys
 import traceback
-from pathlib import Path
+from collections.abc import Callable
 from datetime import datetime
-import os
-from typing import Any, Callable
+from pathlib import Path
 
 from prompt_toolkit import Application
 from prompt_toolkit.key_binding import KeyBindings
-from prompt_toolkit.layout import HSplit, VSplit, Layout, Window
+from prompt_toolkit.layout import HSplit, Layout, VSplit, Window
 from prompt_toolkit.layout.controls import FormattedTextControl
 from prompt_toolkit.layout.dimension import Dimension
 from prompt_toolkit.styles import Style
@@ -25,9 +25,8 @@ from prompt_toolkit.styles import Style
 sys.path.insert(0, str(Path(__file__).parent.parent / "fastapi"))
 
 from config import Settings
-from rag.pipeline import retrieve_answer, cache_stats, flush_cache
 from rag.client_qdrant import get_qdrant_client
-
+from rag.pipeline import cache_stats, flush_cache, retrieve_answer
 
 style = Style.from_dict(
     {
@@ -63,7 +62,9 @@ class OpsCLI:
         self.kb = KeyBindings()
         self._bind_keys()
         self.layout = self._build_layout()
-        self.app = Application(layout=self.layout, key_bindings=self.kb, full_screen=True, style=style)
+        self.app = Application(
+            layout=self.layout, key_bindings=self.kb, full_screen=True, style=style
+        )
 
     def _bind_keys(self) -> None:
         @self.kb.add("up")
@@ -93,7 +94,12 @@ class OpsCLI:
 
     def _build_layout(self) -> Layout:
         def header_text() -> list[tuple[str, str]]:
-            return [("class:header", f" 🏥 FreeHekim RAG – Ops CLI  |  ENV: {self.settings.env.upper()} ")]
+            return [
+                (
+                    "class:header",
+                    f" 🏥 FreeHekim RAG – Ops CLI  |  ENV: {self.settings.env.upper()} ",
+                )
+            ]
 
         def footer_text() -> list[tuple[str, str]]:
             return [
@@ -191,22 +197,27 @@ class OpsCLI:
             client = get_qdrant_client()
             for col in client.get_collections().collections:
                 info = client.get_collection(col.name)
-                line = f"- {col.name}: points={info.points_count}, vectors_count={info.vectors_count}"
+                line = (
+                    f"- {col.name}: points={info.points_count}, vectors_count={info.vectors_count}"
+                )
                 # Try to show HNSW search params if available
                 ef_construct = ef_search = m_degree = None
                 try:
-                    hnsw = getattr(getattr(info, 'config', None), 'params', None)
+                    hnsw = getattr(getattr(info, "config", None), "params", None)
                     if hnsw is not None:
-                        hnsw = getattr(hnsw, 'hnsw_config', None)
+                        hnsw = getattr(hnsw, "hnsw_config", None)
                     if hnsw is None:
-                        hnsw = getattr(getattr(info, 'config', None), 'hnsw_config', None)
-                    ef_construct = getattr(hnsw, 'ef_construct', None)
-                    ef_search = getattr(hnsw, 'ef_search', None)
-                    m_degree = getattr(hnsw, 'm', None)
-                except Exception:
-                    pass
+                        hnsw = getattr(getattr(info, "config", None), "hnsw_config", None)
+                    ef_construct = getattr(hnsw, "ef_construct", None)
+                    ef_search = getattr(hnsw, "ef_search", None)
+                    m_degree = getattr(hnsw, "m", None)
+                except Exception as e:
+                    # Optional/shape-changes across qdrant_client versions; ignore
+                    self.output_lines.append(f"(bilgi) HNSW detayları okunamadı: {e}")
                 if any(x is not None for x in (ef_construct, ef_search, m_degree)):
-                    line += f" | hnsw(ef_search={ef_search}, ef_construct={ef_construct}, m={m_degree})"
+                    line += (
+                        f" | hnsw(ef_search={ef_search}, ef_construct={ef_construct}, m={m_degree})"
+                    )
                 self.output_lines.append(line)
         except Exception as e:
             self.print_err(f"Listeleme hatası: {e}")
@@ -221,19 +232,20 @@ class OpsCLI:
             cols = client.get_collections().collections
             for col in cols:
                 info = client.get_collection(col.name)
-                points = getattr(info, 'points_count', 0) or 0
+                points = getattr(info, "points_count", 0) or 0
                 import math
+
                 suggested = int(min(512, max(64, 2 * math.sqrt(max(1, points)))))
                 ef_search = None
                 try:
-                    hnsw = getattr(getattr(info, 'config', None), 'params', None)
+                    hnsw = getattr(getattr(info, "config", None), "params", None)
                     if hnsw is not None:
-                        hnsw = getattr(hnsw, 'hnsw_config', None)
+                        hnsw = getattr(hnsw, "hnsw_config", None)
                     if hnsw is None:
-                        hnsw = getattr(getattr(info, 'config', None), 'hnsw_config', None)
-                    ef_search = getattr(hnsw, 'ef_search', None)
-                except Exception:
-                    pass
+                        hnsw = getattr(getattr(info, "config", None), "hnsw_config", None)
+                    ef_search = getattr(hnsw, "ef_search", None)
+                except Exception as e:
+                    self.output_lines.append(f"(bilgi) ef_search okunamadı: {e}")
                 self.output_lines.append(
                     f"- {col.name}: points={points} | mevcut ef_search={ef_search} | öneri≈{suggested}"
                 )
@@ -290,6 +302,7 @@ class OpsCLI:
         if st.get("enabled") and st.get("size", 0) > 0:
             self.output_lines.append("")
             self.output_lines.append("Space/Enter ile cache temizlenir…")
+
             # Bir sonraki Enter/Space çağrısında flush tetikle
             def _flush_once() -> None:
                 n = flush_cache()
