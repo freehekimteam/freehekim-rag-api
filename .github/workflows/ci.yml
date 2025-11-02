@@ -45,9 +45,14 @@ jobs:
         run: |
           pytest -v tests/ --cov=fastapi --cov-report=xml || true
 
-      - name: Enforce coverage threshold (>= 80%)
-        if: ${{ env.ENFORCE_TOTAL_COVERAGE == 'true' && hashFiles('coverage.xml') != '' }}
-        run: coverage report --fail-under=80
+      - name: Enforce coverage threshold (pushes to main)
+        if: ${{ env.ENFORCE_TOTAL_COVERAGE == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main' && hashFiles('coverage.xml') != '' }}
+        env:
+          TOTAL_COVERAGE_MIN: ${{ vars.TOTAL_COVERAGE_MIN }}
+        run: |
+          FAIL_UNDER="${TOTAL_COVERAGE_MIN:-80}"
+          echo "Enforcing total coverage >= ${FAIL_UNDER}% on main push"
+          coverage report --fail-under="$FAIL_UNDER"
 
       - name: Upload coverage to Codacy (project token)
         if: ${{ env.CODACY_PROJECT_TOKEN != '' && hashFiles('coverage.xml') != '' }}
