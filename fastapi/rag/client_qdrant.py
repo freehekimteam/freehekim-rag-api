@@ -5,8 +5,8 @@ Manages connection and search operations for FreeHekim vector collections.
 """
 
 import logging
-from typing import Any
 import time
+from typing import Any
 
 from qdrant_client import QdrantClient
 from qdrant_client.models import ScoredPoint
@@ -50,7 +50,7 @@ def get_qdrant_client() -> QdrantClient:
                 port=settings.qdrant_port,
                 api_key=settings.get_qdrant_api_key(),
                 https=settings.use_https,
-                timeout=settings.qdrant_timeout  # Connection timeout (configurable)
+                timeout=settings.qdrant_timeout,  # Connection timeout (configurable)
             )
 
             # Verify connection
@@ -89,9 +89,7 @@ def search(
         ConnectionError: If Qdrant is unreachable
     """
     if collection not in [INTERNAL, EXTERNAL]:
-        raise ValueError(
-            f"Invalid collection: {collection}. Must be '{INTERNAL}' or '{EXTERNAL}'"
-        )
+        raise ValueError(f"Invalid collection: {collection}. Must be '{INTERNAL}' or '{EXTERNAL}'")
 
     if topk < 1 or topk > 100:
         raise ValueError(f"topk must be between 1 and 100, got {topk}")
@@ -177,7 +175,7 @@ def get_collection_info(collection_name: str) -> dict[str, Any]:
             "name": collection_name,
             "vectors_count": info.vectors_count,
             "points_count": info.points_count,
-            "status": info.status.value
+            "status": info.status.value,
         }
     except Exception as e:
         logger.error(f"Error getting collection info: {e}")
@@ -185,4 +183,3 @@ def get_collection_info(collection_name: str) -> dict[str, Any]:
 
 
 # Note: Do NOT initialize the client at import-time to avoid startup failures
-_qdrant = None  # Will be created on first use via get_qdrant_client()
