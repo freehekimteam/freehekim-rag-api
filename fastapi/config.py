@@ -140,17 +140,15 @@ class Settings(BaseSettings):
     @field_validator("qdrant_api_key", mode="before")
     @classmethod
     def _validator_qdrant_api_key(cls, v: str | None, info) -> str | None:
-        # Delegate to (patchable) validate_qdrant_key, support patched plain functions
+        # Delegate to (patchable) validate_qdrant_key
+        # Works for both classmethod (bound) and a patched plain function
         func = cls.validate_qdrant_key
-        # Works for both classmethod (bound) and patched plain function
         try:
+            # classmethod or previously bound call
             return func(v, info)
         except TypeError:
-            # If a plain function with (cls, v, info) was patched in, bind it
-            import types as _types
-
-            bound = _types.MethodType(func, cls)
-            return bound(v, info)
+            # If patched as a plain function (cls, v, info)
+            return func(cls, v, info)
 
     @classmethod
     def validate_openai_key(cls, v: str | None, info) -> str | None:
@@ -163,16 +161,13 @@ class Settings(BaseSettings):
     @field_validator("openai_api_key", mode="before")
     @classmethod
     def _validator_openai_api_key(cls, v: str | None, info) -> str | None:
-        # Delegate to (patchable) validate_openai_key, support patched plain functions
+        # Delegate to (patchable) validate_openai_key
+        # Works for both classmethod (bound) and a patched plain function
         func = cls.validate_openai_key
-        # Works for both classmethod (bound) and patched plain function
         try:
             return func(v, info)
         except TypeError:
-            import types as _types
-
-            bound = _types.MethodType(func, cls)
-            return bound(v, info)
+            return func(cls, v, info)
 
     def get_qdrant_api_key(self) -> str | None:
         """Get plain text Qdrant API key"""
