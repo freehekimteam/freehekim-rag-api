@@ -105,6 +105,11 @@ unfixable = []
 # Allow unused variables when underscore-prefixed
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
+[tool.ruff.lint.per-file-ignores]
+# Turkish UI/strings contain characters flagged as ambiguous by RUF001
+"cli.py" = ["RUF001"]
+"fastapi/rag/pipeline.py" = ["RUF001"]
+
 [tool.ruff.format]
 # Use double quotes for strings
 quote-style = "double"
