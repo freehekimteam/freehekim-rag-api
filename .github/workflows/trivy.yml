@@ -21,11 +21,11 @@ jobs:
           docker build -f deployment/docker/Dockerfile.api -t freehekim-rag-api:scan .
 
       - name: Run Trivy
-        uses: aquasecurity/trivy-action@0.24.0
+        # Pin to full commit SHA for immutability (v0.24.0)
+        uses: aquasecurity/trivy-action@6e7b7d1fd3e4fef0c5fa8cce1229c54b2c9bd0d8
         with:
           image-ref: 'freehekim-rag-api:scan'
           format: 'table'
           exit-code: '0'
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH,MEDIUM'
-

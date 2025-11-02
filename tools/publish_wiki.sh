@@ -19,7 +19,7 @@ echo "Wiki:   $WIKI_URL"
 rm -rf "$TMP_DIR"
 git clone "$WIKI_URL" "$TMP_DIR"
 
-rm -rf "$TMP_DIR"/*
+rm -rf "${TMP_DIR:?}"/*
 mkdir -p "$TMP_DIR"
 cp -R "$SRC_DIR"/* "$TMP_DIR"/
 
@@ -32,4 +32,3 @@ fi
 git commit -m "docs(wiki): sync from docs/wiki"
 git push origin HEAD:master || git push origin HEAD:main || git push
 echo "Wiki published successfully."
-
