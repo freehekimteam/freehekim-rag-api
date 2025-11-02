@@ -10,18 +10,16 @@ import os
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from prompt_toolkit import Application
 from prompt_toolkit.buffer import Buffer
-from prompt_toolkit.document import Document
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.layout import (
     Dimension,
     FormattedTextControl,
     HSplit,
     Layout,
-    VSplit,
     Window,
 )
 from prompt_toolkit.styles import Style
@@ -36,6 +34,7 @@ sys.path.insert(0, str(Path(__file__).parent / "fastapi"))
 
 from config import Settings
 from rag.pipeline import retrieve_answer
+
 try:
     import httpx  # type: ignore
 except Exception:
@@ -251,7 +250,7 @@ class FreeHekimCLI:
             self.status_text = f"✅ Tamamlandı - {tokens} token kullanıldı"
 
         except Exception as e:
-            self.result_text = f"\n❌ Hata:\n{str(e)}\n"
+            self.result_text = f"\n❌ Hata:\n{e!s}\n"
             self.status_text = f"❌ Hata: {str(e)[:50]}"
 
         self.app.invalidate()
@@ -259,14 +258,20 @@ class FreeHekimCLI:
     def _export_markdown(self, result: dict[str, Any]) -> str:
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
         path = EXPORT_DIR / f"rag_cli_{ts}.md"
-        lines = [f"# FreeHekim RAG — {ts}", "", f"**Soru:** {result.get('question','')}", "", result.get("answer", "")]
+        lines = [
+            f"# FreeHekim RAG — {ts}",
+            "",
+            f"**Soru:** {result.get('question','')}",
+            "",
+            result.get("answer", ""),
+        ]
         sources = result.get("sources", [])
         if sources:
             lines.append("")
             lines.append("## Kaynaklar")
             for i, s in enumerate(sources, 1):
                 lines.append(f"- [Kaynak {i}] ({s.get('source')}): {s.get('text','')}")
-        with open(path, "w", encoding="utf-8") as f:
+        with path.open("w", encoding="utf-8") as f:
             f.write("\n".join(lines))
         return str(path)
 
@@ -393,6 +398,8 @@ class FreeHekimCLI:
   Ortam: {env}
   Model: {model}
   Embedding: {embedding}
+  Uzak API: {remote_url}
+  API Anahtarı: {api_key_mask}
 
 ══════════════════════════════════════════════════════════════════════════════
 """.format(
@@ -411,7 +418,7 @@ class FreeHekimCLI:
         """Load query history from file"""
         if HISTORY_FILE.exists():
             try:
-                with open(HISTORY_FILE, "r", encoding="utf-8") as f:
+                with HISTORY_FILE.open(encoding="utf-8") as f:
                     for line in f:
                         parts = line.strip().split("|", 2)
                         if len(parts) == 3:
@@ -435,7 +442,7 @@ class FreeHekimCLI:
 
         # Save to file
         try:
-            with open(HISTORY_FILE, "a", encoding="utf-8") as f:
+            with HISTORY_FILE.open("a", encoding="utf-8") as f:
                 f.write(f"{timestamp}|{tokens}|{question}\n")
         except Exception as e:
             console.print(f"[yellow]Warning: Could not save history: {e}[/yellow]")
@@ -458,8 +465,7 @@ def simple_mode():
     """Simple command-line mode without TUI"""
     console.print(
         Panel.fit(
-            "[bold blue]🏥 FreeHekim RAG - Simple Mode[/bold blue]\n"
-            "[dim]Ctrl+C to exit[/dim]",
+            "[bold blue]🏥 FreeHekim RAG - Simple Mode[/bold blue]\n" "[dim]Ctrl+C to exit[/dim]",
             border_style="blue",
         )
     )
@@ -533,9 +539,18 @@ def main():
         type=str,
         help="Single query mode",
     )
-    parser.add_argument("--remote-url", type=str, default=DEFAULT_REMOTE_URL, help="Remote API base URL (e.g., https://rag.example.com)")
-    parser.add_argument("--api-key", type=str, default=DEFAULT_API_KEY, help="X-Api-Key for remote API (optional)")
-    parser.add_argument("--timeout", type=float, default=15.0, help="HTTP timeout (seconds) for remote mode")
+    parser.add_argument(
+        "--remote-url",
+        type=str,
+        default=DEFAULT_REMOTE_URL,
+        help="Remote API base URL (e.g., https://rag.example.com)",
+    )
+    parser.add_argument(
+        "--api-key", type=str, default=DEFAULT_API_KEY, help="X-Api-Key for remote API (optional)"
+    )
+    parser.add_argument(
+        "--timeout", type=float, default=15.0, help="HTTP timeout (seconds) for remote mode"
+    )
 
     args = parser.parse_args()
 
@@ -566,7 +581,9 @@ def main():
             simple_mode()
         else:
             # Full TUI mode
-            cli = FreeHekimCLI(remote_url=args.remote_url, api_key=args.api_key, timeout=args.timeout)
+            cli = FreeHekimCLI(
+                remote_url=args.remote_url, api_key=args.api_key, timeout=args.timeout
+            )
             cli.run()
 
     except KeyboardInterrupt:

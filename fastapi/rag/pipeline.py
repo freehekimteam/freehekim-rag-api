@@ -290,9 +290,8 @@ Yukarıdaki kaynaklara dayanarak soruyu cevapla. Kaynak numaralarını belirt ve
             "tokens_used": 0,
             "model": settings.llm_model,
         }
-    except Exception as e:
-        logger.error(f"Unexpected error during answer generation: {e}", exc_info=True)
-        raise RAGError(f"Failed to generate answer: {e}") from e
+    # Let any unexpected error bubble up to the caller; it will be handled
+    # by the outer retrieve_answer() error mapping logic.
 
 
 def retrieve_answer(q: str, top_k: int | None = None) -> dict[str, Any]:
