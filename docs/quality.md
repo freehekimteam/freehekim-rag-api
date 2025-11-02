@@ -16,6 +16,16 @@ Codacy analyzes pull requests and reports a status check. Please keep PRs green 
   - Threshold: `coverage report --fail-under=80` (fails CI if total < 80%)
   - Coverage Upload: Codacy Coverage Reporter (requires `CODACY_PROJECT_TOKEN` secret)
 
+## Branch Protection
+- Require PR before merge (CODEOWNERS review önerilir)
+- Require status checks: Codacy Quality, (Codacy Coverage), CI, CodeQL
+- Require conversation resolution; Linear history; No bypass
+
+## Release Validation
+1. Tag `vX.Y.Z` → Release workflow çalışır (build+push+deploy)
+2. Sunucu: `docker ps`, `docker inspect docker-api-1 | jq .Config.Labels`
+3. `curl 127.0.0.1:8080/health` ve `/ready` kontrolü
+
 ## Enable Quality Gates in Codacy (UI)
 1. Open the project in Codacy Dashboard.
 2. Settings → Quality.
