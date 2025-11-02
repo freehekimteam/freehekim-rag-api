@@ -3,7 +3,8 @@
 ## Docker Compose (Production)
 ```bash
 # Ortam değişkenleri
-cp .env.example ~/.hakancloud/.env
+mkdir -p /home/freehekim/.config/freehekim-rag
+cp .env.example /home/freehekim/.config/freehekim-rag/.env
 
 # Dağıtım
 docker compose -f deployment/docker/docker-compose.server.yml up -d

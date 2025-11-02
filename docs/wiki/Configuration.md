@@ -16,7 +16,7 @@ Yerel geliştirme için repo kökünde `.env` kullanmaya devam edebilirsiniz (EN
 
 ## Temel Değişkenler
 - `ENV`: `staging` | `production` | `development` (varsayılan: staging)
-- `API_HOST`, `API_PORT`: API servis bind adresi (varsayılan: 0.0.0.0:8080)
+- `API_HOST`, `API_PORT`: API servis bind adresi (varsayılan: 127.0.0.1:8080)
 - `LOG_LEVEL`: `DEBUG`/`INFO`/… (varsayılan: INFO)
 
 ## Qdrant

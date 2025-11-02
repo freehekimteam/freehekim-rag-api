@@ -24,7 +24,7 @@ make run
 Log dosyalarının büyümesini önlemek için Docker log rotation kurulumu:
 
 ```bash
-cd ~/freehekim-rag-api/deployment/docker
+cd /opt/freehekim-rag-api/deployment/docker
 sudo bash setup-log-rotation.sh
 ```
 
