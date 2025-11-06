@@ -2,18 +2,20 @@
 Tests for FreeHekim RAG configuration module
 """
 
+import importlib
 import os
+
+# Add fastapi directory to path
+import sys
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 from pydantic import ValidationError
 
-# Add fastapi directory to path
-import sys
-from pathlib import Path
-
 sys.path.insert(0, str(Path(__file__).parent.parent / "fastapi"))
 
+import config
 from config import Settings
 
 
@@ -22,19 +24,25 @@ class TestSettingsDefaults:
 
     def test_default_values(self):
         """Test that defaults are set correctly"""
-        with patch.dict(os.environ, {}, clear=True):
-            # Override validators that require keys
-            with patch.object(Settings, "validate_qdrant_key", lambda cls, v, info: v):
-                with patch.object(Settings, "validate_openai_key", lambda cls, v, info: v):
-                    settings = Settings()
+        with patch.dict(os.environ, {"FREEHEKIM_IGNORE_ENV_FILE": "1"}, clear=True):
+            # Reload config module to pick up new env var
+            importlib.reload(config)
+            from config import Settings
 
-                    assert settings.env == "staging"
-                    assert settings.qdrant_host == "localhost"
-                    assert settings.qdrant_port == 6333
-                    assert settings.embed_provider == "openai"
-                    assert settings.openai_embedding_model == "text-embedding-3-small"
-                    assert settings.api_port == 8080
-                    assert settings.log_level == "INFO"
+            # Override validators that require keys
+            with (
+                patch.object(Settings, "validate_qdrant_key", lambda cls, v, info: v),
+                patch.object(Settings, "validate_openai_key", lambda cls, v, info: v),
+            ):
+                settings = Settings()
+
+                assert settings.env == "staging"
+                assert settings.qdrant_host == "localhost"
+                assert settings.qdrant_port == 6333
+                assert settings.embed_provider == "openai"
+                assert settings.openai_embedding_model == "text-embedding-3-small"
+                assert settings.api_port == 8080
+                assert settings.log_level == "INFO"
 
     def test_environment_override(self):
         """Test that environment variables override defaults"""
@@ -63,9 +71,13 @@ class TestSettingsValidation:
         """Test that production environment requires Qdrant API key"""
         with patch.dict(
             os.environ,
-            {"ENV": "production", "OPENAI_API_KEY": "sk-test"},
+            {"ENV": "production", "OPENAI_API_KEY": "sk-test", "FREEHEKIM_IGNORE_ENV_FILE": "1"},
             clear=True,
         ):
+            # Reload config module to pick up new env var
+            importlib.reload(config)
+            from config import Settings
+
             with pytest.raises(ValidationError, match="QDRANT_API_KEY is required"):
                 Settings()
 
@@ -73,37 +85,45 @@ class TestSettingsValidation:
         """Test that OpenAI provider requires API key"""
         with patch.dict(
             os.environ,
-            {"EMBED_PROVIDER": "openai"},
+            {"EMBED_PROVIDER": "openai", "FREEHEKIM_IGNORE_ENV_FILE": "1"},
             clear=True,
         ):
+            # Reload config module to pick up new env var
+            importlib.reload(config)
+            from config import Settings
+
             with pytest.raises(ValidationError, match="OPENAI_API_KEY is required"):
                 Settings()
 
     def test_invalid_port_rejected(self):
         """Test that invalid port numbers are rejected"""
-        with patch.dict(
-            os.environ,
-            {
-                "QDRANT_PORT": "70000",  # Invalid port
-                "OPENAI_API_KEY": "sk-test",
-            },
-            clear=True,
+        with (
+            patch.dict(
+                os.environ,
+                {
+                    "QDRANT_PORT": "70000",  # Invalid port
+                    "OPENAI_API_KEY": "sk-test",
+                },
+                clear=True,
+            ),
+            pytest.raises(ValidationError),
         ):
-            with pytest.raises(ValidationError):
-                Settings()
+            Settings()
 
     def test_invalid_env_rejected(self):
         """Test that invalid environment values are rejected"""
-        with patch.dict(
-            os.environ,
-            {
-                "ENV": "invalid",  # Not in Literal["staging", "production", "development"]
-                "OPENAI_API_KEY": "sk-test",
-            },
-            clear=True,
+        with (
+            patch.dict(
+                os.environ,
+                {
+                    "ENV": "invalid",  # Not in Literal["staging", "production", "development"]
+                    "OPENAI_API_KEY": "sk-test",
+                },
+                clear=True,
+            ),
+            pytest.raises(ValidationError),
         ):
-            with pytest.raises(ValidationError):
-                Settings()
+            Settings()
 
 
 class TestSettingsHelpers:
@@ -119,14 +139,16 @@ class TestSettingsHelpers:
             settings = Settings()
             assert settings.use_https is True
 
-        with patch.dict(
-            os.environ,
-            {"QDRANT_PORT": "6333", "OPENAI_API_KEY": "sk-test"},
-            clear=True,
+        with (
+            patch.dict(
+                os.environ,
+                {"QDRANT_PORT": "6333", "OPENAI_API_KEY": "sk-test"},
+                clear=True,
+            ),
+            patch.object(Settings, "validate_qdrant_key", lambda cls, v, info: v),
         ):
-            with patch.object(Settings, "validate_qdrant_key", lambda cls, v, info: v):
-                settings = Settings()
-                assert settings.use_https is False
+            settings = Settings()
+            assert settings.use_https is False
 
     def test_is_production_property(self):
         """Test environment detection properties"""
@@ -145,16 +167,18 @@ class TestSettingsHelpers:
 
     def test_get_secret_methods(self):
         """Test that secret getters return plain text values"""
-        with patch.dict(
-            os.environ,
-            {
-                "QDRANT_API_KEY": "qdrant-secret",
-                "OPENAI_API_KEY": "openai-secret",
-            },
-            clear=True,
+        with (
+            patch.dict(
+                os.environ,
+                {
+                    "QDRANT_API_KEY": "qdrant-secret",
+                    "OPENAI_API_KEY": "openai-secret",
+                },
+                clear=True,
+            ),
+            patch.object(Settings, "validate_qdrant_key", lambda cls, v, info: v),
         ):
-            with patch.object(Settings, "validate_qdrant_key", lambda cls, v, info: v):
-                settings = Settings()
+            settings = Settings()
 
-                assert settings.get_qdrant_api_key() == "qdrant-secret"
-                assert settings.get_openai_api_key() == "openai-secret"
+            assert settings.get_qdrant_api_key() == "qdrant-secret"
+            assert settings.get_openai_api_key() == "openai-secret"

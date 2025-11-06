@@ -34,16 +34,16 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r fastapi/requirements.txt
-          pip install -r requirements-dev.txt || true
+          pip install -r requirements-dev.txt
 
       - name: Lint (ruff)
-        run: ruff check fastapi || true
+        run: ruff check fastapi
 
       - name: Tests (pytest + coverage)
         env:
           OPENAI_API_KEY: sk-ci-dummy
         run: |
-          pytest -v tests/ --cov=fastapi --cov-report=xml || true
+          pytest -v tests/ --cov=fastapi --cov-report=xml
 
       - name: Enforce coverage threshold (pushes to main)
         if: ${{ env.ENFORCE_TOTAL_COVERAGE == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main' && hashFiles('coverage.xml') != '' }}
