@@ -1,6 +1,6 @@
 # Deployment Guide for FreeHekim RAG API
 
-This guide covers GitHub Actions setup, secrets configuration, and deployment procedures.
+This guide covers GitHub Actions setup, self‑hosted runner configuration, and deployment procedures.
 
 ---
 
@@ -13,7 +13,45 @@ This guide covers GitHub Actions setup, secrets configuration, and deployment pr
 
 ---
 
-## 1. GitHub Secrets Configuration
+## 1. Preferred: Self‑hosted Runner on Production Host
+
+Install a GitHub Actions self‑hosted runner on the production machine (your local device acting as prod), so deployments run directly on that box.
+
+1) Prepare the machine
+
+```bash
+# Create secure env (edit values, keep file out of repo)
+sudo mkdir -p /etc/freehekim-rag
+sudo cp .env.example /etc/freehekim-rag/.env
+sudo chgrp ragsvc /etc/freehekim-rag/.env 2>/dev/null || true
+sudo chmod 640 /etc/freehekim-rag/.env
+
+sudo bash deployment/scripts/provision_freehekim_rag.sh --workdir $(pwd) --env-file /etc/freehekim-rag/.env
+sudo systemctl enable --now freehekim-rag.service
+```
+
+2) Install the runner (repo → Settings → Actions → Runners → New self‑hosted runner)
+
+```bash
+mkdir -p ~/actions-runner && cd ~/actions-runner
+curl -fsSL -o runner.tar.gz "https://github.com/actions/runner/releases/latest/download/actions-runner-linux-x64-$(curl -fsSL https://api.github.com/repos/actions/runner/releases/latest | grep tag_name | cut -d '"' -f4 | sed 's/^v//').tar.gz"
+tar xzf runner.tar.gz
+./config.sh --url https://github.com/<owner>/<repo> --token <RUNNER_TOKEN> --labels linux,self-hosted --name prod-runner
+sudo ./svc.sh install && sudo ./svc.sh start
+```
+
+3) Deploy from GitHub
+
+- Push to `main` → Auto deploy on the runner (workflow: Auto Deploy)
+- Or run `Deploy (manual)` from Actions tab
+
+Workflows are tagged with `environment: production` for visibility/approvals.
+
+Qdrant auth: include `QDRANT__SERVICE__API_KEY` in `/etc/freehekim-rag/.env` to require `api-key` header for admin endpoints. The API process uses `QDRANT_API_KEY` to authenticate when querying Qdrant.
+
+---
+
+## 2. (Optional/Alternate) GitHub Secrets for SSH-based Deploy
 
 ### Required Secrets
 
@@ -70,7 +108,17 @@ Create two environments in **Settings → Environments:**
 
 ---
 
-## 2. Server Setup
+## 3. Server Setup (for SSH-based flow)
+
+### Legacy/External Variables
+
+- HC_ENV → Use ENV instead. App artık `HC_ENV`’i de kabul ediyor (geri uyumluluk), ancak standart `ENV` kullanın.
+- HC_CF_TUNNEL_HOST → cloudflared için host adı. Health monitor, `MONITOR_URL_HEALTH` tanımlı değilse bu değişkenden `https://<host>/health` türetir.
+- CF_API_TOKEN, CF_ZONE → Uygulama/compose tarafından kullanılmaz. Bunlar altyapı otomasyonu içindir:
+  - Terraform için `cloudflare_api_token` değişkenini `terraform.tfvars` içinde saklayın.
+  - Cloudflare DNS alanı/zone tanımları Terraform’a taşınacaksa ayrıca `zone` değişkeni eklenebilir; mevcut repo bu adımı CLI (`cloudflared tunnel route dns`) ile yapıyor.
+- IMAGE_TAG → Compose imaj etiketi. `/etc/freehekim-rag/.env` içine yazılabilir veya systemd unit override ile `Environment=IMAGE_TAG=...` tanımlanabilir.
+- LANG → Uygulama için gerekli değildir; sistem/locale ihtiyaçları için set edilebilir.
 
 SSH into your Hetzner server and run:
 

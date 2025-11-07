@@ -1,0 +1,13 @@
+[Unit]
+Description=FreeHekim RAG - Daily Backup
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=%WORKDIR%
+ExecStart=/usr/bin/env bash %WORKDIR%/deployment/scripts/backup.sh
+
+[Install]
+WantedBy=multi-user.target

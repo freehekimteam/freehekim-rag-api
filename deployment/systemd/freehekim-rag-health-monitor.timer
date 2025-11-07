@@ -1,0 +1,11 @@
+[Unit]
+Description=FreeHekim RAG - Health Monitor (every 5 minutes)
+
+[Timer]
+OnBootSec=2m
+OnUnitActiveSec=5m
+Unit=freehekim-rag-health-monitor.service
+
+[Install]
+WantedBy=timers.target
+

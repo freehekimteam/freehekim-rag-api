@@ -1,0 +1,15 @@
+[Unit]
+Description=FreeHekim RAG - Health Monitor
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=%USER%
+Environment=ENV_FILE=%ENV_FILE%
+WorkingDirectory=%WORKDIR%
+ExecStart=%WORKDIR%/deployment/scripts/health_monitor.sh
+
+[Install]
+WantedBy=multi-user.target
+

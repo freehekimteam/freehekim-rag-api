@@ -108,3 +108,7 @@ docs/cli-exports/
 # Local guideline docs (not tracked)
 /AGENTS.md
 **/AGENTS.md
+
+
+#Ignore vscode AI rules
+.github/instructions/codacy.instructions.md

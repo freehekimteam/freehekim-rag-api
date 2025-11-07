@@ -1,0 +1,11 @@
+[Unit]
+Description=FreeHekim RAG - Daily Backup (03:00)
+
+[Timer]
+OnCalendar=03:00
+AccuracySec=1h
+Unit=freehekim-rag-backup.service
+
+[Install]
+WantedBy=timers.target
+

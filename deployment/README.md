@@ -21,6 +21,18 @@ sudo mkdir -p /etc/freehekim-rag
 sudo cp .env.example /etc/freehekim-rag/.env
 sudo chgrp ragsvc /etc/freehekim-rag/.env 2>/dev/null || true
 sudo chmod 640 /etc/freehekim-rag/.env
+
+# IMPORTANT: Never commit real secrets. Keep /etc/freehekim-rag/.env out of the repo.
+
+# Recommended production values (edit /etc/freehekim-rag/.env):
+# ENV=production
+# QDRANT_HOST=localhost
+# QDRANT_PORT=6333
+# QDRANT__SERVICE__API_KEY=<server_api_key>   # enables auth on Qdrant REST
+# QDRANT_API_KEY=<client_api_key>             # used by API to talk to Qdrant
+# OPENAI_API_KEY=sk-...
+# REQUIRE_API_KEY=true
+# API_KEY=<strong_random_value>
 ```
 
 ### 2. Provision and Systemd Service (Recommended)
@@ -118,6 +130,14 @@ docker-compose up -d --scale api=10
 - [ ] Cloudflare Tunnel configured
 - [ ] Regular backups enabled
 - [ ] Monitoring alerts configured
+
+### Legacy/External Vars
+
+- HC_ENV → ENV (uygulama `HC_ENV`’i de kabul eder ama `ENV` tercih edin)
+- HC_CF_TUNNEL_HOST → health monitor için dış adres; `MONITOR_URL_HEALTH` yoksa otomatik türetilir
+- CF_API_TOKEN, CF_ZONE → altyapı otomasyonu (Terraform/Cloudflare), uygulama .env’ine koymayın
+- IMAGE_TAG → imaj etiketi; `/etc/freehekim-rag/.env` veya systemd override ile belirleyin
+- LANG → sistem locale ihtiyacı varsa ayarlayın
 
 ## Rollback
 
@@ -241,6 +261,30 @@ docker-compose up -d
   - `Release (on tag)`: `v*.*.*` etiketi push edilince compose pull/up
 - Kurulum: Settings → Actions → Runners → New self‑hosted runner (Linux). Hızlı kurulum için `/tmp/gha-runner`, kalıcı servis için `/opt/actions-runner` kullanabilirsiniz.
 - Çalıştırma: Actions → `Deploy (manual)` → `Run workflow`.
+
+#### Örnek yerel runner kurulumu (özet)
+
+```bash
+# Üretim sunucusunda (production makinenizde) normal kullanıcıyla çalışın (ör. freehekim)
+mkdir -p ~/actions-runner && cd ~/actions-runner
+
+# En güncel sürümü indir (Linux x64)
+curl -fsSL -o runner.tar.gz "https://github.com/actions/runner/releases/latest/download/actions-runner-linux-x64-$(curl -fsSL https://api.github.com/repos/actions/runner/releases/latest | grep tag_name | cut -d '"' -f4 | sed 's/^v//').tar.gz"
+tar xzf runner.tar.gz
+
+# Runner'ı repo ile ilişkilendir (GitHub → Settings → Actions → Runners → New self‑hosted runner → token)
+./config.sh --url https://github.com/<owner>/<repo> --token <RUNNER_TOKEN> --labels linux,self-hosted --name prod-runner
+
+# Servis olarak kur ve başlat
+sudo ./svc.sh install
+sudo ./svc.sh start
+
+# Docker yetkileri (gerekirse)
+sudo usermod -aG docker "$USER"
+newgrp docker
+```
+
+Runner hesabının `docker` grubunda olduğundan ve `~/.config/freehekim-rag/.env` dosyasının bulunduğundan emin olun. Workflow’lar production ortamı ile işaretlenmiştir (`environment: production`).
 
 ### GitLab CI
 
