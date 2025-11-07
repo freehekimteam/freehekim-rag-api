@@ -9,7 +9,7 @@ import inspect
 import os
 from typing import Literal
 
-from pydantic import Field, SecretStr, field_validator
+from pydantic import AliasChoices, Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -23,7 +23,9 @@ class Settings(BaseSettings):
 
     # Environment
     env: Literal["staging", "production", "development"] = Field(
-        default="staging", description="Application environment"
+        default="staging",
+        description="Application environment",
+        validation_alias=AliasChoices("ENV", "HC_ENV"),  # accept legacy HC_ENV
     )
 
     # Qdrant Configuration

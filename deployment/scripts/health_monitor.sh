@@ -16,6 +16,10 @@ if [ -f "$ENV_FILE" ]; then
   source "$ENV_FILE"
 fi
 
+# Derive external health URL from HC_CF_TUNNEL_HOST if MONITOR_URL_HEALTH not set
+if [ -z "${MONITOR_URL_HEALTH:-}" ] && [ -n "${HC_CF_TUNNEL_HOST:-}" ]; then
+  MONITOR_URL_HEALTH="https://${HC_CF_TUNNEL_HOST}/health"
+fi
 MONITOR_URL_HEALTH="${MONITOR_URL_HEALTH:-https://rag.hakancloud.com/health}"
 MONITOR_URL_READY="${MONITOR_URL_READY:-http://127.0.0.1:8080/ready}"
 MONITOR_EXPECT_HEALTH="${MONITOR_EXPECT_HEALTH:-200}"
