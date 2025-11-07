@@ -327,7 +327,7 @@ Custom RAG metrics exposed:
 - Reset test data and enforce correct vector dimensions (defaults to embedding model size):
 
 ```bash
-cd ~/freehekim-rag-api
+cd /opt/freehekim-rag-api
 python3 tools/qdrant_reset.py --yes
 # Custom options
 # python3 tools/qdrant_reset.py --collections freehekim_internal,freehekim_external --dimension 1536 --distance cosine -y
