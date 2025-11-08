@@ -107,6 +107,9 @@ class Settings(BaseSettings):
     cache_ttl_seconds: int = Field(
         default=300, ge=10, le=86400, description="TTL for in-memory cache (seconds)"
     )
+    cache_max_entries: int = Field(
+        default=256, ge=1, le=10000, description="Maximum number of cached responses to keep"
+    )
 
     # Simple API key protection for /rag/query
     require_api_key: bool = Field(

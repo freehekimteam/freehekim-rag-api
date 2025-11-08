@@ -9,6 +9,9 @@ from medical knowledge base.
 import hashlib
 import logging
 import time
+from collections import OrderedDict
+from dataclasses import dataclass
+from threading import Lock
 from typing import Any
 
 try:  # Compatibility across openai versions
@@ -40,11 +43,22 @@ MEDICAL_DISCLAIMER = (
 
 # Global OpenAI client for LLM generation
 _llm_client: OpenAI | None = None
-_response_cache: dict[str, tuple[float, dict[str, Any]]] = {}
+
+# In-memory response cache (LRU-managed)
+@dataclass(slots=True)
+class CacheEntry:
+    """Cache metadata container for LRU bookkeeping."""
+
+    timestamp: float
+    value: dict[str, Any]
+
+_response_cache: "OrderedDict[str, CacheEntry]" = OrderedDict()
+_cache_lock = Lock()
+_cache_metrics: dict[str, int] = {"hit": 0, "miss": 0, "expired": 0, "evicted": 0}
 
 # Prometheus metrics for RAG pipeline
 try:
-    from prometheus_client import Counter, Histogram
+    from prometheus_client import Counter, Gauge, Histogram
 
     RAG_TOTAL_SECONDS = Histogram(
         "rag_total_seconds",
@@ -73,6 +87,15 @@ try:
         "Total OpenAI tokens used",
         labelnames=("model",),
     )
+    RAG_CACHE_EVENTS = Counter(
+        "rag_cache_events_total",
+        "Total cache events",
+        labelnames=("event",),
+    )
+    RAG_CACHE_SIZE = Gauge(
+        "rag_cache_size",
+        "Number of cached RAG responses in memory",
+    )
 except Exception:  # Metrics are optional
     RAG_TOTAL_SECONDS = None
     RAG_EMBED_SECONDS = None
@@ -80,6 +103,63 @@ except Exception:  # Metrics are optional
     RAG_GENERATE_SECONDS = None
     RAG_ERRORS_TOTAL = None
     RAG_TOKENS_TOTAL = None
+    RAG_CACHE_EVENTS = None
+    RAG_CACHE_SIZE = None
+
+
+def _update_cache_size_metric() -> None:
+    if RAG_CACHE_SIZE is not None:
+        try:
+            RAG_CACHE_SIZE.set(len(_response_cache))
+        except Exception:
+            logger.debug("Cache size metric update failed", exc_info=True)
+
+
+def _record_cache_event(event: str) -> None:
+    if event in _cache_metrics:
+        _cache_metrics[event] += 1
+    else:
+        _cache_metrics[event] = 1
+
+    if RAG_CACHE_EVENTS is not None:
+        try:
+            RAG_CACHE_EVENTS.labels(event=event).inc()
+        except Exception:
+            logger.debug("Cache event metric update failed", exc_info=True)
+
+
+def _cache_get(key: str) -> dict[str, Any] | None:
+    ttl = settings.cache_ttl_seconds
+    now = time.monotonic()
+    with _cache_lock:
+        entry = _response_cache.get(key)
+        if entry is None:
+            _record_cache_event("miss")
+            return None
+
+        if now - entry.timestamp > ttl:
+            _response_cache.pop(key, None)
+            _record_cache_event("expired")
+            _update_cache_size_metric()
+            return None
+
+        _response_cache.move_to_end(key)
+        _record_cache_event("hit")
+        return entry.value
+
+
+def _cache_set(key: str, value: dict[str, Any]) -> None:
+    entry = CacheEntry(timestamp=time.monotonic(), value=value)
+    max_entries = settings.cache_max_entries
+    with _cache_lock:
+        _response_cache[key] = entry
+        _response_cache.move_to_end(key)
+
+        while len(_response_cache) > max_entries:
+            _response_cache.popitem(last=False)
+            _record_cache_event("evicted")
+
+        _update_cache_size_metric()
 
 
 class RAGError(Exception):
@@ -347,10 +427,10 @@ def retrieve_answer(q: str, top_k: int | None = None) -> dict[str, Any]:
         if settings.enable_cache:
             key_raw = f"q={q}|topk={top_k}|model={settings.llm_model}"
             cache_key = hashlib.sha256(key_raw.encode("utf-8")).hexdigest()
-            item = _response_cache.get(cache_key)
-            if item and (time.monotonic() - item[0] <= settings.cache_ttl_seconds):
+            cached_response = _cache_get(cache_key)
+            if cached_response is not None:
                 logger.info("⚡ Cache hit for query")
-                return item[1]
+                return cached_response
         query_vector = embed(q)
         t1 = time.perf_counter()
         if RAG_EMBED_SECONDS:
@@ -452,7 +532,7 @@ def retrieve_answer(q: str, top_k: int | None = None) -> dict[str, Any]:
         # Save to cache
         if settings.enable_cache and cache_key:
             try:
-                _response_cache[cache_key] = (time.monotonic(), response)
+                _cache_set(cache_key, response)
             except Exception:
                 logger.debug("Cache save failed; ignoring and continuing", exc_info=True)
         return response
@@ -518,20 +598,25 @@ def retrieve_answer(q: str, top_k: int | None = None) -> dict[str, Any]:
 def cache_stats() -> dict[str, Any]:
     """Return simple cache statistics."""
     try:
-        return {
-            "enabled": settings.enable_cache,
-            "size": len(_response_cache),
-            "ttl_seconds": settings.cache_ttl_seconds,
-        }
+        with _cache_lock:
+            return {
+                "enabled": settings.enable_cache,
+                "size": len(_response_cache),
+                "ttl_seconds": settings.cache_ttl_seconds,
+                "max_entries": settings.cache_max_entries,
+                "metrics": dict(_cache_metrics),
+            }
     except Exception:
-        return {"enabled": False, "size": 0, "ttl_seconds": 0}
+        return {"enabled": False, "size": 0, "ttl_seconds": 0, "max_entries": 0, "metrics": {}}
 
 
 def flush_cache() -> int:
     """Flush in-memory response cache; returns number of entries removed."""
     try:
-        n = len(_response_cache)
-        _response_cache.clear()
+        with _cache_lock:
+            n = len(_response_cache)
+            _response_cache.clear()
+            _update_cache_size_metric()
         logger.info(f"🧹 Cache flushed: {n} entries removed")
         return n
     except Exception:

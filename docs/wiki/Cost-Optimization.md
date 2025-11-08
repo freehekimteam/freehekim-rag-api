@@ -4,7 +4,7 @@
 - `LLM_MODEL`: daha ekonomik model (örn. `gpt-4o-mini`)
 - `LLM_MAX_TOKENS`: 600→400
 - `SEARCH_TOPK` ve `PIPELINE_MAX_CONTEXT_CHUNKS`: 5→3
-- Önbellek: `ENABLE_CACHE=true`, `CACHE_TTL_SECONDS` artırılabilir
+- Önbellek: `ENABLE_CACHE=true`, `CACHE_TTL_SECONDS` ve `CACHE_MAX_ENTRIES` load'a göre ayarlanabilir
 
 ## Orta Vadeli
 - Batch embedding: API limitlerine göre boyut ayarı

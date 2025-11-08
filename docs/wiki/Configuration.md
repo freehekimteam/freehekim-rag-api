@@ -49,6 +49,7 @@ Yerel geliştirme için repo kökünde `.env` kullanmaya devam edebilirsiniz (EN
 ## Önbellek
 - `ENABLE_CACHE` (true/false)
 - `CACHE_TTL_SECONDS`
+- `CACHE_MAX_ENTRIES`
 
 ## Örnek .env Parçası
 ```env
@@ -69,6 +70,7 @@ RATE_LIMIT_PER_MINUTE=60
 MAX_BODY_SIZE_BYTES=1048576
 ENABLE_CACHE=true
 CACHE_TTL_SECONDS=300
+CACHE_MAX_ENTRIES=256
 REQUIRE_API_KEY=false
 # API_KEY=your_api_key_here
 ```

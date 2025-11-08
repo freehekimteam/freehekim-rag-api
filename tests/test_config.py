@@ -41,6 +41,7 @@ class TestSettingsDefaults:
                 assert settings.qdrant_port == 6333
                 assert settings.embed_provider == "openai"
                 assert settings.openai_embedding_model == "text-embedding-3-small"
+                assert settings.cache_max_entries == 256
                 assert settings.api_port == 8080
                 assert settings.log_level == "INFO"
 

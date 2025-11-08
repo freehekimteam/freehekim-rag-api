@@ -297,7 +297,16 @@ class OpsCLI:
         self.output_lines.append("CACHE DURUMU")
         self.output_lines.append("-" * 60)
         self.output_lines.append(
-            f"Durum: {'AÇIK' if st.get('enabled') else 'KAPALI'} | Boyut: {st.get('size')} | TTL: {st.get('ttl_seconds')}s"
+            f"Durum: {'AÇIK' if st.get('enabled') else 'KAPALI'} | Boyut: {st.get('size')}/{st.get('max_entries')} | TTL: {st.get('ttl_seconds')}s"
+        )
+        metrics = st.get('metrics') or {}
+        self.output_lines.append(
+            "İstatistik: hit={hit} miss={miss} expired={expired} evicted={evicted}".format(
+                hit=metrics.get('hit', 0),
+                miss=metrics.get('miss', 0),
+                expired=metrics.get('expired', 0),
+                evicted=metrics.get('evicted', 0),
+            )
         )
         if st.get("enabled") and st.get("size", 0) > 0:
             self.output_lines.append("")
@@ -331,6 +340,7 @@ class OpsCLI:
             "PIPELINE_MAX_SOURCE_TEXT_LENGTH": "200",
             "ENABLE_CACHE": "true",
             "CACHE_TTL_SECONDS": "600",
+            "CACHE_MAX_ENTRIES": "512",
             # Keep timeouts modest
             "QDRANT_TIMEOUT": str(max(5.0, getattr(s, "qdrant_timeout", 10.0))),
         }
@@ -354,6 +364,7 @@ class OpsCLI:
             "PIPELINE_MAX_SOURCE_TEXT_LENGTH": "300",
             "ENABLE_CACHE": "true",
             "CACHE_TTL_SECONDS": "180",
+            "CACHE_MAX_ENTRIES": "256",
             "QDRANT_TIMEOUT": "6.0",
         }
         perf_file = outdir / f"env_suggestion_perf_{now}.env"
